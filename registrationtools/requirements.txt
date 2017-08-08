@@ -1,0 +1,3 @@
+PythonHelper.egg==info
+numpy==1.13.1
+SimpleITK==1.0.1
