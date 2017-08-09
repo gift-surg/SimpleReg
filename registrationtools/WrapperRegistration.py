@@ -51,7 +51,6 @@ class WrapperRegistration(object):
         self._options = options
 
         self._registration_transform_sitk = None
-        self._moving_warped_sitk = None
         self._computational_time = ph.get_zero_time()
 
     ##
@@ -169,7 +168,7 @@ class WrapperRegistration(object):
     #
     def get_registration_transform_sitk(self):
         if self._registration_transform_sitk is None:
-            raise UnboundLocalError("Execute 'run_registration' first.")
+            raise UnboundLocalError("Execute 'run' first.")
 
         return self._registration_transform_sitk
 
@@ -183,7 +182,54 @@ class WrapperRegistration(object):
     # \return     The warped moving image as sitk.Image object
     #
     def get_warped_moving_sitk(self):
-        return sitk.Image(self._moving_warped_sitk)
+        return self._get_warped_moving_sitk()
+
+    ##
+    # Gets the warped moving image mask, i.e. moving image mask warped and
+    # resampled to fixed grid
+    # \date       2017-08-09 11:13:01+0100
+    #
+    # \param      self  The object
+    #
+    # \return     The warped moving image mask as sitk.Image object
+    #
+    def get_warped_moving_sitk_mask(self):
+        if self._moving_sitk_mask is None:
+            raise ValueError("Moving mask is not provided.")
+
+        return self._get_warped_moving_sitk_mask()
+
+    ##
+    # Gets the fixed image transformed by the obtained registration transform.
+    #
+    # The returned image will align the fixed image with the moving image as
+    # found during the registration.
+    # \date       2017-08-08 16:53:21+0100
+    #
+    # \param      self  The object
+    #
+    # \return     The transformed fixed as sitk.Image object
+    #
+    def get_transformed_fixed_sitk(self):
+        return self._get_transformed_fixed_sitk()
+
+    ##
+    # Gets the fixed image mask transformed by the obtained registration
+    # transform.
+    #
+    # The returned image will align the fixed image mask with the moving image
+    # as found during the registration.
+    # \date       2017-08-08 16:53:21+0100
+    #
+    # \param      self  The object
+    #
+    # \return     The transformed fixed mask as sitk.Image object
+    #
+    def get_transformed_fixed_sitk_mask(self):
+        if self._fixed_sitk_mask is None:
+            raise ValueError("Fixed mask is not provided.")
+
+        return self._get_transformed_fixed_sitk_mask()
 
     ##
     # Gets the computational time it took to perform the registration
@@ -204,11 +250,21 @@ class WrapperRegistration(object):
     #
     def run(self):
 
-        if self._fixed_sitk is None:
-            raise ValueError("Fixed image must be specified")
+        if not isinstance(self._fixed_sitk, sitk.Image):
+            raise ValueError("Fixed image must be of type SimpleITK.Image")
 
-        if self._moving_sitk is None:
-            raise ValueError("Mobing image must be specified")
+        if not isinstance(self._moving_sitk, sitk.Image):
+            raise ValueError("Moving image must be of type SimpleITK.Image")
+
+        if self._fixed_sitk_mask is not None and \
+                not isinstance(self._fixed_sitk_mask, sitk.Image):
+            raise ValueError(
+                "Fixed image mask must be of type SimpleITK.Image")
+
+        if self._moving_sitk_mask is not None and \
+                not isinstance(self._moving_sitk_mask, sitk.Image):
+            raise ValueError(
+                "Moving image mask must be of type SimpleITK.Image")
 
         time_start = ph.start_timing()
 
@@ -218,6 +274,60 @@ class WrapperRegistration(object):
         # Get computational time
         self._computational_time = ph.stop_timing(time_start)
 
+    ##
+    # Execute registration method
+    # \date       2017-08-09 12:08:38+0100
+    #
+    # \param      self  The object
+    #
     @abstractmethod
     def _run(self):
+        pass
+
+    ##
+    # Gets the warped moving image.
+    # \date       2017-08-09 12:08:50+0100
+    #
+    # \param      self  The object
+    #
+    # \return     The warped moving image as sitk.Image object.
+    #
+    @abstractmethod
+    def _get_warped_moving_sitk(self):
+        pass
+
+    ##
+    # Gets the warped moving image mask.
+    # \date       2017-08-09 12:08:50+0100
+    #
+    # \param      self  The object
+    #
+    # \return     The warped moving image mask as sitk.Image object.
+    #
+    @abstractmethod
+    def _get_warped_moving_sitk_mask(self):
+        pass
+
+    ##
+    # Gets the transformed fixed image.
+    # \date       2017-08-09 12:08:50+0100
+    #
+    # \param      self  The object
+    #
+    # \return     The transformed fixed mask as sitk.Image.
+    #
+    @abstractmethod
+    def _get_transformed_fixed_sitk(self):
+        pass
+
+    ##
+    # Gets the transformed fixed mask.
+    # \date       2017-08-09 12:08:50+0100
+    #
+    # \param      self  The object
+    #
+    # \return     The transformed fixed mask as sitk.Image.
+    #
+    @abstractmethod
+    def _get_transformed_fixed_sitk_mask(self):
         pass
