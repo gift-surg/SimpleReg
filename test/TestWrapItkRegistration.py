@@ -26,12 +26,20 @@ class TestWrapItkRegistration(unittest.TestCase):
         # ----------------------------------2D---------------------------------
         self.fixed_sitk_2D = sitk.ReadImage(
             os.path.join(DIR_TEST, "2D_Brain_Target.png"), sitk.sitkFloat64)
-
         self.moving_sitk_2D = sitk.ReadImage(
             os.path.join(DIR_TEST, "2D_Brain_Source.png"), sitk.sitkFloat64)
 
+        self.fixed_sitk_mask_2D = sitk.ReadImage(
+            os.path.join(DIR_TEST, "2D_Brain_Target_mask.png"), sitk.sitkUInt8)
+        self.moving_sitk_mask_2D = sitk.ReadImage(
+            os.path.join(DIR_TEST, "2D_Brain_Source_mask.png"), sitk.sitkUInt8)
+
         self.fixed_itk_2D = sitkh.get_itk_from_sitk_image(self.fixed_sitk_2D)
         self.moving_itk_2D = sitkh.get_itk_from_sitk_image(self.moving_sitk_2D)
+        self.fixed_itk_mask_2D = sitkh.get_itk_from_sitk_image(
+            self.fixed_sitk_mask_2D)
+        self.moving_itk_mask_2D = sitkh.get_itk_from_sitk_image(
+            self.moving_sitk_mask_2D)
 
         # ---------------------------------3D----------------------------------
         self.fixed_sitk_3D = sitk.ReadImage(
@@ -97,13 +105,19 @@ class TestWrapItkRegistration(unittest.TestCase):
     def test_registration_2D(self):
         self.fixed_sitk = self.fixed_sitk_2D
         self.moving_sitk = self.moving_sitk_2D
+        self.fixed_sitk_mask = self.fixed_sitk_mask_2D
+        self.moving_sitk_mask = self.moving_sitk_mask_2D
         self.fixed_itk = self.fixed_itk_2D
         self.moving_itk = self.moving_itk_2D
+        self.fixed_itk_mask = self.fixed_itk_mask_2D
+        self.moving_itk_mask = self.moving_itk_mask_2D
         self.show_fig = 0
 
         self.registration_method = itkreg.WrapItkRegistration(
             fixed_itk=self.fixed_itk,
             moving_itk=self.moving_itk,
+            # fixed_itk_mask=self.fixed_itk_mask,
+            # moving_itk_mask=self.moving_itk_mask,
             # initializer_type="MOMENTS",
             initializer_type="GEOMETRY",
             dimension=2,
@@ -111,30 +125,39 @@ class TestWrapItkRegistration(unittest.TestCase):
         )
         self.registration_method.run()
 
-    def test_registration_2D_itk_oriented_gaussian(self):
-        self.fixed_sitk = self.fixed_sitk_2D
-        self.moving_sitk = self.moving_sitk_2D
-        self.fixed_itk = self.fixed_itk_2D
-        self.moving_itk = self.moving_itk_2D
-        self.show_fig = 1
+    # def test_registration_2D_itk_oriented_gaussian(self):
+    #     self.fixed_sitk = self.fixed_sitk_2D
+    #     self.moving_sitk = self.moving_sitk_2D
+    #     self.fixed_sitk_mask = self.fixed_sitk_mask_2D
+    #     self.moving_sitk_mask = self.moving_sitk_mask_2D
+    #     self.fixed_itk = self.fixed_itk_2D
+    #     self.moving_itk = self.moving_itk_2D
+    #     self.fixed_itk_mask = self.fixed_itk_mask_2D
+    #     self.moving_itk_mask = self.moving_itk_mask_2D
+    #     self.show_fig = 0
 
-        itk_oriented_gaussian_interpolator = \
-            itk.OrientedGaussianInterpolateImageFunction[
-                itk.Image.D2, itk.D].New()
+    #     itk_oriented_gaussian_interpolator = \
+    #         itk.OrientedGaussianInterpolateImageFunction[
+    #             itk.Image.D2, itk.D].New()
 
-        self.registration_method = itkreg.WrapItkRegistration(
-            fixed_itk=self.fixed_itk,
-            moving_itk=self.moving_itk,
-            # metric="MeanSquares",
-            # metric="MattesMutualInformation",
-            # initializer_type="MOMENTS",
-            # initializer_type="GEOMETRY",
-            registration_type="Similarity",
-            # itk_oriented_gaussian_interpolate_image_filter=itk_oriented_gaussian_interpolator,
-            dimension=2,
-            verbose=1,
-        )
-        self.registration_method.run()
+    #     self.registration_method = itkreg.WrapItkRegistration(
+    #         fixed_itk=self.fixed_itk,
+    #         moving_itk=self.moving_itk,
+    #         fixed_itk_mask=self.fixed_itk_mask,
+    #         moving_itk_mask=self.moving_itk_mask,
+    #         # metric="MeanSquares",
+    #         # metric="MattesMutualInformation",
+    #         # initializer_type="MOMENTS",
+    #         initializer_type="GEOMETRY",
+    #         # registration_type="Similarity",
+    #         # optimizer="QuasiNewton",
+    #         # use_multiresolution_framework=True,
+    #         # optimizer_scales="PhysicalShift",
+    #         itk_oriented_gaussian_interpolate_image_filter=itk_oriented_gaussian_interpolator,
+    #         dimension=2,
+    #         verbose=1,
+    #     )
+    #     self.registration_method.run()
 
     # def test_registration_3D(self):
 

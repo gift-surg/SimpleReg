@@ -26,10 +26,17 @@ class WrapItkRegistration(object):
         fixed_itk_mask=None,
         moving_itk_mask=None,
         registration_type="Rigid",
-        metric="Correlation",
+        metric="MattesMutualInformation",
         interpolator="Linear",
         initializer_type=None,
         optimizer="RegularStepGradientDescent",
+        optimizer_params={
+            "MinimumStepLength": 1e-6,
+            "NumberOfIterations": 200,
+            "GradientMagnitudeTolerance": 1e-6,
+            "LearningRate": 1,
+            # "RelaxationFactor": 0.5,
+        },
         use_multiresolution_framework=False,
         shrink_factors=[2, 1],
         smoothing_sigmas=[1, 0],
@@ -63,6 +70,7 @@ class WrapItkRegistration(object):
         self._interpolator = interpolator
         self._initializer_type = initializer_type
         self._optimizer = optimizer
+        self._optimizer_params = optimizer_params
         self._use_multiresolution_framework = use_multiresolution_framework
         self._shrink_factors = shrink_factors
         self._smoothing_sigmas = smoothing_sigmas
@@ -151,6 +159,35 @@ class WrapItkRegistration(object):
 
     def _run_v3(self):
 
+        if self._optimizer_scales is not None:
+            raise ValueError("No scales allowed for 'ImageRegistrationMethod'")
+        if self._use_multiresolution_framework:
+            raise ValueError(
+                "Multiresolution-Framework cannot be used with "
+                "ImageRegistrationMethod. ImageRegistrationMethodv4 required.")
+
+        # -----------------------Image Registration Type-----------------------
+        registration_type = itk.ImageRegistrationMethod[
+            self._image_type, self._image_type]
+
+        registration = registration_type.New()
+        registration.SetFixedImage(self._fixed_itk)
+        registration.SetMovingImage(self._moving_itk)
+
+        # ---------------------------Optimizer Type---------------------------
+        if self._optimizer == "RegularStepGradientDescent":
+            optimizer_type = itk.RegularStepGradientDescentOptimizer
+            optimizer = optimizer_type.New()
+            for key, value in self._optimizer_params.iteritems():
+                if key == "LearningRate":
+                    continue
+                eval("optimizer.Set%s(%g)" % (key, value))
+        else:
+            raise ValueError(
+                "For 'ImageRegistrationMethod' only "
+                "RegularStepGradientDescent")
+        registration.SetOptimizer(optimizer)
+
         # ---------------------------Transform Type---------------------------
         if self._registration_type == "Rigid":
             transform_type = eval(
@@ -169,6 +206,39 @@ class WrapItkRegistration(object):
             raise ValueError("Registration type '%s' not known." %
                              (self._registration_type))
 
+        initial_transform = transform_type.New()
+        registration.SetTransform(initial_transform)
+
+        if self._initializer_type is not None:
+            if self._dimension == 2:
+                transform_type_that_works = itk.CenteredRigid2DTransform[
+                    self._pixel_type]
+            else:
+                transform_type_that_works = itk.VersorRigid3DTransform[
+                    self._pixel_type]
+            initial_transform_ = transform_type_that_works.New()
+            initializer = itk.CenteredTransformInitializer[
+                transform_type_that_works,
+                self._image_type,
+                self._image_type].New()
+            initializer.SetTransform(initial_transform_)
+            initializer.SetFixedImage(self._fixed_itk)
+            initializer.SetMovingImage(self._moving_itk)
+            if self._initializer_type == "MOMENTS":
+                initializer.MomentsOn()
+            else:
+                initializer.GeometryOn()
+            initializer.InitializeTransform()
+            initial_transform.SetMatrix(
+                initial_transform_.GetMatrix())
+            initial_transform.SetTranslation(
+                initial_transform_.GetTranslation())
+            initial_transform.SetCenter(
+                initial_transform_.GetCenter())
+        # print(initial_transform)
+        registration.SetInitialTransformParameters(
+            initial_transform.GetParameters())
+
         # --------------------------Interpolator Type--------------------------
         if self._itk_oriented_gaussian_interpolate_image_filter is not None:
             interpolator = self._itk_oriented_gaussian_interpolate_image_filter
@@ -177,6 +247,7 @@ class WrapItkRegistration(object):
                 eval("itk.%sInterpolateImageFunction[self._image_type, "
                      "self._pixel_type]" % (self._interpolator))
             interpolator = interpolator_type.New()
+        registration.SetInterpolator(interpolator)
 
         # -----------------------------Metric Type-----------------------------
         if self._metric == "Correlation":
@@ -189,36 +260,11 @@ class WrapItkRegistration(object):
         elif self._metric == "MeanSquares":
             metric_type = itk.MeanSquaresImageToImageMetric[
                 self._image_type, self._image_type]
-
-        # ---------------------------Optimizer Type---------------------------
-        if self._optimizer == "RegularStepGradientDescent":
-            optimizer_type = itk.RegularStepGradientDescentOptimizer
         else:
-            raise ValueError(
-                "For 'ImageRegistrationMethod' only "
-                "RegularStepGradientDescent")
-
-        # -----------------------Image Registration Type-----------------------
-        registration_type = itk.ImageRegistrationMethod[
-            self._image_type, self._image_type]
-
-        # ----------------------------Set variables----------------------------
-        registration = registration_type.New()
-        registration.SetFixedImage(self._fixed_itk)
-        registration.SetMovingImage(self._moving_itk)
-        registration.SetInterpolator(interpolator)
-
-        optimizer = optimizer_type.New()
-        optimizer.SetGradientMagnitudeTolerance(1e-6)
-        optimizer.SetMinimumStepLength(1e-6)
-        optimizer.SetNumberOfIterations(200)
-        optimizer.SetRelaxationFactor(0.5)
-        if self._optimizer_scales is not None:
-            raise ValueError("No scales allowed for 'ImageRegistrationMethod'")
-
-        registration.SetOptimizer(optimizer)
-
+            raise ValueError("Metric type '%s' not known." %
+                             (self._metric))
         metric = metric_type.New()
+
         if self._moving_itk_mask is not None:
             self._mask_caster.SetInput(self._moving_itk_mask)
             self._mask_caster.Update()
@@ -241,47 +287,10 @@ class WrapItkRegistration(object):
                 self._dimension].New()
             fixed_mask_object.SetImage(fixed_itk_mask)
             metric.SetFixedImageMask(fixed_mask_object)
+
         registration.SetMetric(metric)
 
-        initial_transform = transform_type.New()
-        registration.SetTransform(initial_transform)
-        if self._initializer_type is not None:
-            if self._dimension == 2:
-                transform_which_works = itk.CenteredRigid2DTransform[
-                    self._pixel_type]
-            else:
-                transform_which_works = itk.VersorRigid3DTransform[
-                    self._pixel_type]
-            initial_transform_ = transform_which_works.New()
-            initializer = itk.CenteredTransformInitializer[
-                transform_which_works,
-                self._image_type,
-                self._image_type].New()
-            initializer.SetTransform(initial_transform_)
-            initializer.SetFixedImage(self._fixed_itk)
-            initializer.SetMovingImage(self._moving_itk)
-            if self._initializer_type == "MOMENTS":
-                initializer.MomentsOn()
-            else:
-                initializer.GeometryOn()
-            initializer.InitializeTransform()
-            initial_transform.SetMatrix(
-                initial_transform_.GetMatrix())
-            initial_transform.SetTranslation(
-                initial_transform_.GetTranslation())
-            initial_transform.SetCenter(
-                initial_transform_.GetCenter())
-        # print(initial_transform)
-        registration.SetInitialTransformParameters(
-            initial_transform.GetParameters())
-
-        # Optional multi-resolution framework
-        if self._use_multiresolution_framework:
-            raise ValueError(
-                "Multiresolution-Framework cannot be used with "
-                "ImageRegistrationMethod. ImageRegistrationMethodv4 required.")
-
-        # Execute registration
+        # ------------------------Execute Registration------------------------
         registration.Update()
 
         self._registration_transform_itk = registration.GetTransform()
@@ -317,7 +326,7 @@ class WrapItkRegistration(object):
             sitkh.get_sitk_from_itk_transform(self._registration_transform_itk)
 
         if self._verbose:
-            ph.print_info("Summary Registration Method Result:")
+            ph.print_info("Summary ImageRegistrationMethod:")
             ph.print_info("\tOptimizer\'s stopping condition: %s" % (
                 registration.GetOptimizer().GetStopConditionDescription()))
             ph.print_info("\tFinal metric value: %s" % (
@@ -327,16 +336,46 @@ class WrapItkRegistration(object):
 
     def _run_v4(self):
 
-        # -----------------Define used types for registration-----------------
+        # -----------------------Image Registration Type-----------------------
+        registration_type = itk.ImageRegistrationMethodv4[
+            self._image_type, self._image_type]
+
+        registration = registration_type.New()
+        registration.SetFixedImage(self._fixed_itk)
+        registration.SetMovingImage(self._moving_itk)
+
+        # ---------------------------Optimizer Type---------------------------
+        if self._optimizer == "RegularStepGradientDescent":
+            optimizer_type = itk.RegularStepGradientDescentOptimizerv4[
+                self._pixel_type]
+            optimizer = optimizer_type.New()
+            for key, value in self._optimizer_params.iteritems():
+                eval("optimizer.Set%s(%g)" % (key, value))
+
+        # elif self._optimizer == "QuasiNewton":
+        #     # Throws segmentation fault
+        #     optimizer_type = itk.QuasiNewtonOptimizerv4Template[
+        #         self._pixel_type]
+        #     optimizer = optimizer_type.New()
+        else:
+            raise ValueError("Optimizer type '%s' not known." %
+                             (self._optimizer))
+        registration.SetOptimizer(optimizer)
+
+        if self._optimizer_scales is not None:
+            raise ValueError("No optimizer scales estimator wrapped")
+            # https://itk.org/Doxygen/html/Examples_2RegistrationITKv4_2ImageRegistration1_8cxx-example.html
+
+        # ---------------------------Transform Type---------------------------
         if self._registration_type == "Rigid":
             transform_type = eval(
                 "itk.Euler%dDTransform[self._pixel_type]" % (
                     self._dimension))
 
-        # elif self._registration_type == "Similarity":
-        #     transform_type = eval(
-        #         "itk.Similarity%dDTransform[self._pixel_type]" % (
-        #             self._dimension))
+        elif self._registration_type == "Similarity":
+            transform_type = eval(
+                "itk.Similarity%dDTransform[self._pixel_type]" % (
+                    self._dimension))
 
         elif self._registration_type == "Affine":
             transform_type = itk.AffineTransform[
@@ -345,48 +384,19 @@ class WrapItkRegistration(object):
             raise ValueError("Registration type '%s' not known." %
                              (self._registration_type))
 
-        interpolator_type = \
-            eval("itk.%sInterpolateImageFunction[self._image_type, "
-                 "self._pixel_type]" % (self._interpolator))
-
-        optimizer_type = itk.RegularStepGradientDescentOptimizerv4[
-            self._pixel_type]
-
-        metric_type = itk.MattesMutualInformationImageToImageMetricv4[
-            self._image_type, self._image_type]
-
-        registration_type = itk.ImageRegistrationMethodv4[
-            self._image_type, self._image_type]
-
-        optimizer = optimizer_type.New()
-        optimizer.SetMinimumStepLength(1e-6)
-        optimizer.SetNumberOfIterations(200)
-        optimizer.SetGradientMagnitudeTolerance(1e-6)
-        optimizer.SetRelaxationFactor(0.5)
-        # optimizer.SetLearningRate(1)
-        # optimizer.SetMaximumStepLength(1.00)
-        # optimizer = itk.ConjugateGradientLineSearchOptimizer.New()
-        # optimizer.SetNumberOfIterations(100)
-        # registration.SetOptimizer(optimizer)
-        # Set the optimizer to sample the metric at regular steps
-        # registration.SetOptimizerAsExhaustive(numberOfSteps=50,
-        # stepLength=1.0)
-
-        metric = metric_type.New()
-        metric.SetFixedInterpolator(interpolator_type.New())
-        metric.SetMovingInterpolator(interpolator_type.New())
-
         initial_transform = transform_type.New()
+        registration.SetInitialTransform(initial_transform)
+
         if self._initializer_type is not None:
             if self._dimension == 2:
-                transform_which_works = itk.CenteredRigid2DTransform[
+                transform_type_that_works = itk.CenteredRigid2DTransform[
                     self._pixel_type]
             else:
-                transform_which_works = itk.VersorRigid3DTransform[
+                transform_type_that_works = itk.VersorRigid3DTransform[
                     self._pixel_type]
-            initial_transform_ = transform_which_works.New()
+            initial_transform_ = transform_type_that_works.New()
             initializer = itk.CenteredTransformInitializer[
-                transform_which_works,
+                transform_type_that_works,
                 self._image_type,
                 self._image_type].New()
             initializer.SetTransform(initial_transform_)
@@ -404,28 +414,34 @@ class WrapItkRegistration(object):
             initial_transform.SetCenter(
                 initial_transform_.GetCenter())
 
-        registration = registration_type.New()
-        registration.SetFixedImage(self._fixed_itk)
-        registration.SetMovingImage(self._moving_itk)
-        registration.SetMovingInitialTransform(initial_transform)
-        registration.SetFixedInitialTransform(transform_type.New())
-        registration.SetOptimizer(optimizer)
-        # registration.SetInitialTransformParameters(
-        #     initial_transform.GetParameters())
+        # --------------------------Interpolator Type--------------------------
+        if self._itk_oriented_gaussian_interpolate_image_filter is not None:
+            interpolator = self._itk_oriented_gaussian_interpolate_image_filter
+        else:
+            interpolator_type = \
+                eval("itk.%sInterpolateImageFunction[self._image_type, "
+                     "self._pixel_type]" % (self._interpolator))
+            interpolator = interpolator_type.New()
 
-        # if self._metric == "Correlation":
-        #     # metric = itk.NormalizedCorrelationImageToImageMetric[
-        #     #     self._image_type, self._image_type].New()
-        #     metric = itk.MattesMutualInformationImageToImageMetricv4[
-        #         self._image_type, self._image_type].New()
-        # elif self._metric == "MattesMutualInformation":
-        #     metric = itk.MattesMutualInformationImageToImageMetricv4[
-        #         self._image_type, self._image_type].New()
-        # elif self._metric == "MeanSquares":
-        #     metric = itk.MeanSquaresImageToImageMetricv4[
-        #         self._image_type, self._image_type].New()
-        # metric = itk.MattesMutualInformationImageToImageMetric[image_type, image_type].New()
-        # metric.SetNumberOfHistogramBins(200)
+        # -----------------------------Metric Type-----------------------------
+        if self._metric == "Correlation":
+            metric_type = itk.CorrelationImageToImageMetricv4[
+                self._image_type, self._image_type]
+        elif self._metric == "MattesMutualInformation":
+            metric_type = itk.MattesMutualInformationImageToImageMetricv4[
+                self._image_type, self._image_type]
+        elif self._metric == "MeanSquares":
+            metric_type = itk.MeanSquaresImageToImageMetricv4[
+                self._image_type, self._image_type]
+        else:
+            raise ValueError("Metric type '%s' not known." %
+                             (self._metric))
+        metric = metric_type.New()
+        metric.SetMovingInterpolator(interpolator)
+        # metric.SetFixedInterpolator(interpolator.Clone())
+        # Does not "clone" its values!
+
+        # ----------------------------Set variables----------------------------
 
         if self._moving_itk_mask is not None:
             self._mask_caster.SetInput(self._moving_itk_mask)
@@ -453,19 +469,21 @@ class WrapItkRegistration(object):
         registration.SetMetric(metric)
 
         # # Optional multi-resolution framework
-        # if self._use_multiresolution_framework:
-        #     # Set the shrink factors for each level where each level has the
-        #     # same shrink factor for each dimension
-        #     registration.SetShrinkFactorsPerLevel(
-        #         self._shrink_factors)
+        if self._use_multiresolution_framework:
+            registration.SetNumberOfLevels(len(self._shrink_factors))
 
-        #     # Set the sigmas of Gaussian used for smoothing at each level
-        #     registration.SetSmoothingSigmasPerLevel(
-        #         self._smoothing_sigmas)
+            # Set the shrink factors for each level where each level has the
+            # same shrink factor for each dimension
+            registration.SetShrinkFactorsPerLevel(
+                self._shrink_factors)
 
-        #     # Enable the smoothing sigmas for each level in physical units
-        #     # (default) or in terms of voxels (then *UnitsOff instead)
-        #     registration.SmoothingSigmasAreSpecifiedInPhysicalUnitsOn()
+            # Set the sigmas of Gaussian used for smoothing at each level
+            registration.SetSmoothingSigmasPerLevel(
+                self._smoothing_sigmas)
+
+            # Enable the smoothing sigmas for each level in physical units
+            # (default) or in terms of voxels (then *UnitsOff instead)
+            registration.SmoothingSigmasAreSpecifiedInPhysicalUnitsOn()
 
         # Execute registration
         registration.Update()
@@ -482,8 +500,12 @@ class WrapItkRegistration(object):
             ph.print_info("Registration: WrapITK")
             ph.print_info("Transform Model: %s"
                           % (self._registration_type))
-            ph.print_info("Interpolator: %s"
-                          % (self._interpolator))
+            if self._itk_oriented_gaussian_interpolate_image_filter \
+                    is not None:
+                ph.print_info("Interpolator: OrientedGaussian")
+            else:
+                ph.print_info("Interpolator: %s"
+                              % (self._interpolator))
             ph.print_info("Metric: %s" % (self._metric))
             ph.print_info("CenteredTransformInitializer: %s"
                           % (self._initializer_type))
@@ -521,10 +543,10 @@ class WrapItkRegistration(object):
             sitkh.get_sitk_from_itk_transform(self._registration_transform_itk)
 
         if self._verbose:
-            # ph.print_info("SimpleITK Image Registration Method:")
-            # ph.print_info('\tFinal metric value: {0}'.format(
-            #     registration.GetMetricValue()))
-            # ph.print_info('\tOptimizer\'s stopping condition, {0}'.format(
-            #     registration.GetOptimizerStopConditionDescription()))
+            ph.print_info("Summary ImageRegistrationMethodv4:")
+            ph.print_info("\tOptimizer\'s stopping condition: %s" % (
+                registration.GetOptimizer().GetStopConditionDescription()))
+            ph.print_info("\tFinal metric value: %s" % (
+                optimizer.GetValue()))
 
             sitkh.print_sitk_transform(self._registration_transform_sitk)

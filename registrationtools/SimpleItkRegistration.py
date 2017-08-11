@@ -36,10 +36,10 @@ class SimpleItkRegistration(SimpleItkRegistrationBase):
         },
         # optimizer="RegularStepGradientDescent",
         # optimizer_params={
-        #     'learningRate': 1,
         #     'minStep': 1e-6,
         #     'numberOfIterations': 200,
         #     'gradientMagnitudeTolerance': 1e-6,
+        #     'learningRate': 1,
         # },
         initializer_type=None,
         use_multiresolution_framework=False,

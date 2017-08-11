@@ -25,9 +25,13 @@ class TestSimpleItkRegistration(unittest.TestCase):
         # ----------------------------------2D---------------------------------
         self.fixed_sitk_2D = sitk.ReadImage(
             os.path.join(DIR_TEST, "2D_Brain_Target.png"), sitk.sitkFloat64)
+        self.fixed_sitk_mask_2D = sitk.ReadImage(
+            os.path.join(DIR_TEST, "2D_Brain_Target_mask.png"), sitk.sitkUInt8)
 
         self.moving_sitk_2D = sitk.ReadImage(
             os.path.join(DIR_TEST, "2D_Brain_Source.png"), sitk.sitkFloat64)
+        self.moving_sitk_mask_2D = sitk.ReadImage(
+            os.path.join(DIR_TEST, "2D_Brain_Source_mask.png"), sitk.sitkUInt8)
 
         # ---------------------------------3D----------------------------------
         self.fixed_sitk_3D = sitk.ReadImage(
@@ -94,14 +98,18 @@ class TestSimpleItkRegistration(unittest.TestCase):
     def test_registration_2D(self):
         self.fixed_sitk = self.fixed_sitk_2D
         self.moving_sitk = self.moving_sitk_2D
-        self.show_fig = 1
+        self.fixed_sitk_mask = self.fixed_sitk_mask_2D
+        self.moving_sitk_mask = self.moving_sitk_mask_2D
+        self.show_fig = 0
 
         self.registration_method = sitkreg.SimpleItkRegistration(
             fixed_sitk=self.fixed_sitk,
             moving_sitk=self.moving_sitk,
-            initializer_type="MOMENTS",
+            fixed_sitk_mask=self.fixed_sitk_mask,
+            moving_sitk_mask=self.moving_sitk_mask,
+            # initializer_type="MOMENTS",
             metric="MattesMutualInformation",
-            # initializer_type="GEOMETRY",
+            initializer_type="GEOMETRY",
             verbose=1,
         )
 
