@@ -111,7 +111,6 @@ class SimpleItkRegistration(SimpleItkRegistrationBase):
 
         registration_method.SetInitialTransform(
             initial_transform, inPlace=True)
-        print(initial_transform)
 
         if self._moving_sitk_mask is not None:
             # Recasting avoids problems which can occur for some images
@@ -221,11 +220,11 @@ class SimpleItkRegistration(SimpleItkRegistrationBase):
                 registration_transform_sitk)
 
         if self._verbose:
-            ph.print_info("SimpleITK Image Registration Method:")
-            ph.print_info('\tFinal metric value: {0}'.format(
-                registration_method.GetMetricValue()))
-            ph.print_info('\tOptimizer\'s stopping condition, {0}'.format(
+            ph.print_info("Summary Registration Method Result:")
+            ph.print_info("\tOptimizer\'s stopping condition: %s" % (
                 registration_method.GetOptimizerStopConditionDescription()))
+            ph.print_info("\tFinal metric value: %s" % (
+                registration_method.GetMetricValue()))
 
             sitkh.print_sitk_transform(registration_transform_sitk)
 

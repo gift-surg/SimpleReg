@@ -22,5 +22,12 @@ class RegistrationBase(object):
         self._registration_transform_sitk = None
         self._computational_time = ph.get_zero_time()
 
-
     def run(self):
+
+        time_start = ph.start_timing()
+
+        # Execute registration method
+        self._run()
+
+        # Get computational time
+        self._computational_time = ph.stop_timing(time_start)

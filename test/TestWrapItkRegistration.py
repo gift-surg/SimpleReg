@@ -7,6 +7,7 @@
 
 import os
 import numpy as np
+import itk
 import SimpleITK as sitk
 import unittest
 
@@ -46,21 +47,17 @@ class TestWrapItkRegistration(unittest.TestCase):
         print("Computational time = %s" % (
             self.registration_method.get_computational_time()))
 
-        # transformed_fixed_sitk = \
-        #     self.registration_method.get_transformed_fixed_sitk()
-        # warped_moving_sitk = self.registration_method.get_warped_moving_sitk()
+        registration_transform_sitk = \
+            self.registration_method.get_registration_transform_sitk()
+
+        transformed_fixed_sitk = sitkh.get_transformed_sitk_image(
+            self.fixed_sitk, registration_transform_sitk)
 
         if self.show_fig:
             sitkh.show_sitk_image(
-                [self.fixed_sitk, self.moving_sitk, warped_moving_sitk],
-                label=["fixed", "moving", "warped_moving"])
-            sitkh.show_sitk_image(
-                [self.moving_sitk, transformed_fixed_sitk],
-                label=["moving", "warped_fixed"]
+                [self.moving_sitk, self.fixed_sitk, transformed_fixed_sitk],
+                label=["moving_itk", "fixed_itk", "warped_fixed_itk"]
             )
-
-        registration_transform_sitk = \
-            self.registration_method.get_registration_transform_sitk()
 
         # # Check transformed fixed
         # transformed_fixed_sitk_2 = sitkh.get_transformed_sitk_image(
@@ -107,8 +104,33 @@ class TestWrapItkRegistration(unittest.TestCase):
         self.registration_method = itkreg.WrapItkRegistration(
             fixed_itk=self.fixed_itk,
             moving_itk=self.moving_itk,
-            initializer_type="MOMENTS",
+            # initializer_type="MOMENTS",
+            initializer_type="GEOMETRY",
+            dimension=2,
+            verbose=1,
+        )
+        self.registration_method.run()
+
+    def test_registration_2D_itk_oriented_gaussian(self):
+        self.fixed_sitk = self.fixed_sitk_2D
+        self.moving_sitk = self.moving_sitk_2D
+        self.fixed_itk = self.fixed_itk_2D
+        self.moving_itk = self.moving_itk_2D
+        self.show_fig = 1
+
+        itk_oriented_gaussian_interpolator = \
+            itk.OrientedGaussianInterpolateImageFunction[
+                itk.Image.D2, itk.D].New()
+
+        self.registration_method = itkreg.WrapItkRegistration(
+            fixed_itk=self.fixed_itk,
+            moving_itk=self.moving_itk,
+            # metric="MeanSquares",
+            # metric="MattesMutualInformation",
+            # initializer_type="MOMENTS",
             # initializer_type="GEOMETRY",
+            registration_type="Similarity",
+            # itk_oriented_gaussian_interpolate_image_filter=itk_oriented_gaussian_interpolator,
             dimension=2,
             verbose=1,
         )

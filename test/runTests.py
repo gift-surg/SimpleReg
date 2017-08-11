@@ -17,7 +17,7 @@ import os
 # Import modules for unit testing
 # from TestNiftyReg import *
 # from TestFLIRT import *
-from TestSimpleItkRegistration import *
+# from TestSimpleItkRegistration import *
 from TestWrapItkRegistration import *
 
 if __name__ == '__main__':

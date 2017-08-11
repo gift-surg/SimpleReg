@@ -40,18 +40,18 @@ class TestSimpleItkRegistration(unittest.TestCase):
         print("Computational time = %s" % (
             self.registration_method.get_computational_time()))
 
-        # transformed_fixed_sitk = \
-        #     self.registration_method.get_transformed_fixed_sitk()
-        # warped_moving_sitk = self.registration_method.get_warped_moving_sitk()
+        transformed_fixed_sitk = \
+            self.registration_method.get_transformed_fixed_sitk()
+        warped_moving_sitk = self.registration_method.get_warped_moving_sitk()
 
-        # if self.show_fig:
-        #     sitkh.show_sitk_image(
-        #         [self.fixed_sitk, self.moving_sitk, warped_moving_sitk],
-        #         label=["fixed", "moving", "warped_moving"])
-        #     sitkh.show_sitk_image(
-        #         [self.moving_sitk, transformed_fixed_sitk],
-        #         label=["moving", "warped_fixed"]
-        #     )
+        if self.show_fig:
+            # sitkh.show_sitk_image(
+            #     [self.fixed_sitk, self.moving_sitk, warped_moving_sitk],
+            #     label=["fixed", "moving", "warped_moving"])
+            sitkh.show_sitk_image(
+                [self.moving_sitk, self.fixed_sitk, transformed_fixed_sitk],
+                label=["moving", "fixed", "warped_fixed"]
+            )
 
         # registration_transform_sitk = \
         #     self.registration_method.get_registration_transform_sitk()
@@ -94,12 +94,13 @@ class TestSimpleItkRegistration(unittest.TestCase):
     def test_registration_2D(self):
         self.fixed_sitk = self.fixed_sitk_2D
         self.moving_sitk = self.moving_sitk_2D
-        self.show_fig = 0
+        self.show_fig = 1
 
         self.registration_method = sitkreg.SimpleItkRegistration(
             fixed_sitk=self.fixed_sitk,
             moving_sitk=self.moving_sitk,
             initializer_type="MOMENTS",
+            metric="MattesMutualInformation",
             # initializer_type="GEOMETRY",
             verbose=1,
         )
