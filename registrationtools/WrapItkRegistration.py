@@ -26,7 +26,9 @@ class WrapItkRegistration(object):
         fixed_itk_mask=None,
         moving_itk_mask=None,
         registration_type="Rigid",
+        # metric="Correlation",
         metric="MattesMutualInformation",
+        # metric_params=None,
         interpolator="Linear",
         initializer_type=None,
         optimizer="RegularStepGradientDescent",
@@ -67,6 +69,7 @@ class WrapItkRegistration(object):
         self._image_type = itk.Image[self._pixel_type, self._dimension]
         self._registration_type = registration_type
         self._metric = metric
+        # self._metric_params = metric_params
         self._interpolator = interpolator
         self._initializer_type = initializer_type
         self._optimizer = optimizer
@@ -84,6 +87,16 @@ class WrapItkRegistration(object):
 
         self._mask_caster = itk.CastImageFilter[
             self._image_type, itk.Image[itk.UC, self._dimension]].New()
+
+    def _get_mask_object(self, mask_itk):
+        self._mask_caster.SetInput(mask_itk)
+        self._mask_caster.UpdateLargestPossibleRegion()
+        self._mask_caster.Update()
+        cast_mask_itk = self._mask_caster.GetOutput()
+        cast_mask_itk.DisconnectPipeline()
+        mask_object_itk = itk.ImageMaskSpatialObject[self._dimension].New()
+        mask_object_itk.SetImage(cast_mask_itk)
+        return mask_object_itk
 
     ##
     # Gets the computational time it took to perform the registration
@@ -266,61 +279,26 @@ class WrapItkRegistration(object):
         metric = metric_type.New()
 
         if self._moving_itk_mask is not None:
-            self._mask_caster.SetInput(self._moving_itk_mask)
-            self._mask_caster.Update()
-
-            moving_itk_mask = self._mask_caster.GetOutput()
-            moving_itk_mask.DisconnectPipeline()
-
-            moving_mask_object = itk.ImageMaskSpatialObject[
-                self._dimension].New()
-            moving_mask_object.SetImage(moving_itk_mask)
-            metric.SetMovingImageMask(moving_mask_object)
+            mask_object_itk = self._get_mask_object(self._moving_itk_mask)
+            metric.SetMovingImageMask(mask_object_itk)
         if self._fixed_itk_mask is not None:
-            self._mask_caster.SetInput(self._fixed_itk_mask)
-            self._mask_caster.Update()
-
-            fixed_itk_mask = self._mask_caster.GetOutput()
-            fixed_itk_mask.DisconnectPipeline()
-
-            fixed_mask_object = itk.ImageMaskSpatialObject[
-                self._dimension].New()
-            fixed_mask_object.SetImage(fixed_itk_mask)
-            metric.SetFixedImageMask(fixed_mask_object)
+            mask_object_itk = self._get_mask_object(self._fixed_itk_mask)
+            metric.SetFixedImageMask(mask_object_itk)
 
         registration.SetMetric(metric)
 
         # ------------------------Execute Registration------------------------
+        # Debug
+        # print(registration)
+        # print(registration.GetOptimizer())
+        # print(registration.GetMetric())
+        # registration.DebugOn()|
         registration.Update()
 
         self._registration_transform_itk = registration.GetTransform()
 
         if self._verbose:
-            ph.print_info("Registration: WrapITK")
-            ph.print_info("Transform Model: %s"
-                          % (self._registration_type))
-            ph.print_info("Interpolator: %s"
-                          % (self._interpolator))
-            ph.print_info("Metric: %s" % (self._metric))
-            ph.print_info("CenteredTransformInitializer: %s"
-                          % (self._initializer_type))
-            ph.print_info("Optimizer: %s"
-                          % (self._optimizer))
-            ph.print_info("Use Multiresolution Framework: %s"
-                          % (self._use_multiresolution_framework),
-                          newline=not self._use_multiresolution_framework)
-            if self._use_multiresolution_framework:
-                print(
-                    " (" +
-                    "shrink factors = " + str(self._shrink_factors) +
-                    ", " +
-                    "smoothing sigmas = " + str(self._smoothing_sigmas) +
-                    ")"
-                )
-            ph.print_info("Use Fixed Mask: %s"
-                          % (self._fixed_itk_mask is not None))
-            ph.print_info("Use Moving Mask: %s"
-                          % (self._moving_itk_mask is not None))
+            self._print_info_text()
 
         self._registration_transform_sitk = \
             sitkh.get_sitk_from_itk_transform(self._registration_transform_itk)
@@ -444,28 +422,11 @@ class WrapItkRegistration(object):
         # ----------------------------Set variables----------------------------
 
         if self._moving_itk_mask is not None:
-            self._mask_caster.SetInput(self._moving_itk_mask)
-            self._mask_caster.Update()
-
-            moving_itk_mask = self._mask_caster.GetOutput()
-            moving_itk_mask.DisconnectPipeline()
-
-            moving_mask_object = itk.ImageMaskSpatialObject[
-                self._dimension].New()
-            moving_mask_object.SetImage(moving_itk_mask)
-            metric.SetMovingImageMask(moving_mask_object)
-
+            mask_object_itk = self._get_mask_object(self._moving_itk_mask)
+            metric.SetMovingImageMask(mask_object_itk)
         if self._fixed_itk_mask is not None:
-            self._mask_caster.SetInput(self._fixed_itk_mask)
-            self._mask_caster.Update()
-
-            fixed_itk_mask = self._mask_caster.GetOutput()
-            fixed_itk_mask.DisconnectPipeline()
-
-            fixed_mask_object = itk.ImageMaskSpatialObject[
-                self._dimension].New()
-            fixed_mask_object.SetImage(fixed_itk_mask)
-            metric.SetFixedImageMask(fixed_mask_object)
+            mask_object_itk = self._get_mask_object(self._fixed_itk_mask)
+            metric.SetFixedImageMask(mask_object_itk)
         registration.SetMetric(metric)
 
         # # Optional multi-resolution framework
@@ -484,6 +445,19 @@ class WrapItkRegistration(object):
             # Enable the smoothing sigmas for each level in physical units
             # (default) or in terms of voxels (then *UnitsOff instead)
             registration.SmoothingSigmasAreSpecifiedInPhysicalUnitsOn()
+        else:
+            # Deactivate Multi-res since this is used by default
+            registration.SetNumberOfLevels(1)
+            registration.SetShrinkFactorsPerLevel(1)
+            registration.SetSmoothingSigmasPerLevel(0)
+            registration.SmoothingSigmasAreSpecifiedInPhysicalUnitsOn()
+
+        # ------------------------Execute Registration------------------------
+        # Debug
+        # print(registration)
+        # print(registration.GetOptimizer())
+        # print(registration.GetMetric())
+        # registration.DebugOn()
 
         # Execute registration
         registration.Update()
@@ -497,47 +471,7 @@ class WrapItkRegistration(object):
         #      self._optimizer_scales)()
 
         if self._verbose:
-            ph.print_info("Registration: WrapITK")
-            ph.print_info("Transform Model: %s"
-                          % (self._registration_type))
-            if self._itk_oriented_gaussian_interpolate_image_filter \
-                    is not None:
-                ph.print_info("Interpolator: OrientedGaussian")
-            else:
-                ph.print_info("Interpolator: %s"
-                              % (self._interpolator))
-            ph.print_info("Metric: %s" % (self._metric))
-            ph.print_info("CenteredTransformInitializer: %s"
-                          % (self._initializer_type))
-            ph.print_info("Optimizer: %s"
-                          % (self._optimizer))
-            ph.print_info("Use Multiresolution Framework: %s"
-                          % (self._use_multiresolution_framework),
-                          newline=not self._use_multiresolution_framework)
-            if self._use_multiresolution_framework:
-                print(
-                    " (" +
-                    "shrink factors = " + str(self._shrink_factors) +
-                    ", " +
-                    "smoothing sigmas = " + str(self._smoothing_sigmas) +
-                    ")"
-                )
-            ph.print_info("Use Fixed Mask: %s"
-                          % (self._fixed_itk_mask is not None))
-            ph.print_info("Use Moving Mask: %s"
-                          % (self._moving_itk_mask is not None))
-
-        # except RuntimeError as err:
-        #     print(err.message)
-        #     # Debug:
-        #     # itkh.show_itk_image(
-        #     #     [self._fixed_itk, self._moving_itk],
-        #     #     segmentation=self._fixed_itk_mask)
-
-        #     print("WARNING: SetMetricAsCorrelation")
-        #     registration.SetMetricAsCorrelation()
-        #     registration_transform_itk = registration.Execute(
-        #         self._fixed_itk, self._moving_itk)
+            self._print_info_text()
 
         self._registration_transform_sitk = \
             sitkh.get_sitk_from_itk_transform(self._registration_transform_itk)
@@ -550,3 +484,34 @@ class WrapItkRegistration(object):
                 optimizer.GetValue()))
 
             sitkh.print_sitk_transform(self._registration_transform_sitk)
+
+    def _print_info_text(self):
+        ph.print_info("Registration: WrapITK")
+        ph.print_info("Transform Model: %s"
+                      % (self._registration_type))
+        if self._itk_oriented_gaussian_interpolate_image_filter \
+                is not None:
+            ph.print_info("Interpolator: OrientedGaussian")
+        else:
+            ph.print_info("Interpolator: %s"
+                          % (self._interpolator))
+        ph.print_info("Metric: %s" % (self._metric))
+        ph.print_info("CenteredTransformInitializer: %s"
+                      % (self._initializer_type))
+        ph.print_info("Optimizer: %s"
+                      % (self._optimizer))
+        ph.print_info("Use Multiresolution Framework: %s"
+                      % (self._use_multiresolution_framework),
+                      newline=not self._use_multiresolution_framework)
+        if self._use_multiresolution_framework:
+            print(
+                " (" +
+                "shrink factors = " + str(self._shrink_factors) +
+                ", " +
+                "smoothing sigmas = " + str(self._smoothing_sigmas) +
+                ")"
+            )
+        ph.print_info("Use Fixed Mask: %s"
+                      % (self._fixed_itk_mask is not None))
+        ph.print_info("Use Moving Mask: %s"
+                      % (self._moving_itk_mask is not None))

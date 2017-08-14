@@ -31,15 +31,15 @@ class SimpleItkRegistration(SimpleItkRegistrationBase):
         interpolator="Linear",
         optimizer="ConjugateGradientLineSearch",
         optimizer_params={
-            'learningRate': 1,
-            'numberOfIterations': 100,
+            "learningRate": 1,
+            "numberOfIterations": 100,
         },
         # optimizer="RegularStepGradientDescent",
         # optimizer_params={
-        #     'minStep': 1e-6,
-        #     'numberOfIterations': 200,
-        #     'gradientMagnitudeTolerance': 1e-6,
-        #     'learningRate': 1,
+        #     "minStep": 1e-6,
+        #     "numberOfIterations": 200,
+        #     "gradientMagnitudeTolerance": 1e-6,
+        #     "learningRate": 1,
         # },
         initializer_type=None,
         use_multiresolution_framework=False,
@@ -130,15 +130,15 @@ class SimpleItkRegistration(SimpleItkRegistrationBase):
         if self._metric_params is None:
             eval("registration_method.SetMetricAs%s()" % (self._metric))
         else:
-            eval("registration_method.SetMetricAs" +
-                 self._metric)(**self._metric_params)
+            eval("registration_method.SetMetricAs%s" %
+                 (self._metric))(**self._metric_params)
 
         # Set Optimizer
         # if self._optimizer_params is None:
         #     eval("registration_method.SetOptimizerAs" + self._optimizer)()
         # else:
-        eval("registration_method.SetOptimizerAs" +
-             self._optimizer)(**self._optimizer_params)
+        eval("registration_method.SetOptimizerAs%s" %
+             (self._optimizer))(**self._optimizer_params)
 
         # Set the optimizer to sample the metric at regular steps
         # registration_method.SetOptimizerAsExhaustive(numberOfSteps=50,
@@ -146,8 +146,8 @@ class SimpleItkRegistration(SimpleItkRegistrationBase):
 
         # Estimating scales of transform parameters a step sizes, from the
         # maximum voxel shift in physical space caused by a parameter change
-        eval("registration_method.SetOptimizerScalesFrom" +
-             self._optimizer_scales)()
+        eval("registration_method.SetOptimizerScalesFrom%s" %
+             (self._optimizer_scales))()
 
         # Optional multi-resolution framework
         if self._use_multiresolution_framework:
@@ -164,33 +164,9 @@ class SimpleItkRegistration(SimpleItkRegistrationBase):
             # (default) or in terms of voxels (then *UnitsOff instead)
             registration_method.SmoothingSigmasAreSpecifiedInPhysicalUnitsOn()
 
+        # registration_method.DebugOn()
         if self._verbose:
-            ph.print_info("Registration: SimpleITK")
-            ph.print_info("Transform Model: %s"
-                          % (self._registration_type))
-            ph.print_info("Interpolator: %s"
-                          % (self._interpolator))
-            ph.print_info("Metric: %s" % (self._metric))
-            ph.print_info("CenteredTransformInitializer: %s"
-                          % (self._initializer_type))
-            ph.print_info("Optimizer: %s"
-                          % (self._optimizer))
-            ph.print_info("Use Multiresolution Framework: %s"
-                          % (self._use_multiresolution_framework),
-                          newline=not self._use_multiresolution_framework)
-            if self._use_multiresolution_framework:
-                print(
-                    " (" +
-                    "shrink factors = " + str(self._shrink_factors) +
-                    ", " +
-                    "smoothing sigmas = " + str(self._smoothing_sigmas) +
-                    ")"
-                )
-            ph.print_info("Use Fixed Mask: %s"
-                          % (self._fixed_sitk_mask is not None))
-            ph.print_info("Use Moving Mask: %s"
-                          % (self._moving_sitk_mask is not None))
-
+            self._print_info_text()
         try:
             registration_transform_sitk = registration_method.Execute(
                 self._fixed_sitk, self._moving_sitk)
@@ -220,7 +196,7 @@ class SimpleItkRegistration(SimpleItkRegistrationBase):
                 registration_transform_sitk)
 
         if self._verbose:
-            ph.print_info("Summary Registration Method Result:")
+            ph.print_info("Summary RegistrationSimpleITK:")
             ph.print_info("\tOptimizer\'s stopping condition: %s" % (
                 registration_method.GetOptimizerStopConditionDescription()))
             ph.print_info("\tFinal metric value: %s" % (
@@ -262,3 +238,32 @@ class SimpleItkRegistration(SimpleItkRegistrationBase):
         )
 
         return warped_moving_sitk_mask
+
+    def _print_info_text(self):
+        ph.print_info("Registration: SimpleITK")
+        ph.print_info("Transform Model: %s"
+                      % (self._registration_type))
+        ph.print_info("Interpolator: %s"
+                      % (self._interpolator))
+        ph.print_info("Metric: %s" % (self._metric))
+        ph.print_info("CenteredTransformInitializer: %s"
+                      % (self._initializer_type))
+        ph.print_info("Optimizer: %s"
+                      % (self._optimizer))
+        ph.print_info("Optimizer Scales Estimator: %s" %
+                      (self._optimizer_scales))
+        ph.print_info("Use Multiresolution Framework: %s"
+                      % (self._use_multiresolution_framework),
+                      newline=not self._use_multiresolution_framework)
+        if self._use_multiresolution_framework:
+            print(
+                " (" +
+                "shrink factors = " + str(self._shrink_factors) +
+                ", " +
+                "smoothing sigmas = " + str(self._smoothing_sigmas) +
+                ")"
+            )
+        ph.print_info("Use Fixed Mask: %s"
+                      % (self._fixed_sitk_mask is not None))
+        ph.print_info("Use Moving Mask: %s"
+                      % (self._moving_sitk_mask is not None))
