@@ -172,16 +172,16 @@ class SimpleItkRegistration(SimpleItkRegistrationBase):
                 self._fixed_sitk, self._moving_sitk)
 
         except RuntimeError as err:
-            print(err.message)
+            raise RuntimeError(err.message)
             # Debug:
             # sitkh.show_sitk_image(
             #     [self._fixed_sitk, self._moving_sitk],
             #     segmentation=self._fixed_sitk_mask)
 
-            print("WARNING: SetMetricAsCorrelation")
-            registration_method.SetMetricAsCorrelation()
-            registration_transform_sitk = registration_method.Execute(
-                self._fixed_sitk, self._moving_sitk)
+            # print("WARNING: SetMetricAsCorrelation")
+            # registration_method.SetMetricAsCorrelation()
+            # registration_transform_sitk = registration_method.Execute(
+            #     self._fixed_sitk, self._moving_sitk)
 
         if self._registration_type == "Rigid":
             registration_transform_sitk = eval(

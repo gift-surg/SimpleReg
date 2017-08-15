@@ -74,8 +74,8 @@ class NiftyReg(WrapperRegistration):
 class RegAladin(NiftyReg):
 
     def __init__(self,
-                 fixed_sitk,
-                 moving_sitk,
+                 fixed_sitk=None,
+                 moving_sitk=None,
                  fixed_sitk_mask=None,
                  moving_sitk_mask=None,
                  options="",
@@ -180,8 +180,8 @@ class RegAladin(NiftyReg):
 class RegF3D(NiftyReg):
 
     def __init__(self,
-                 fixed_sitk,
-                 moving_sitk,
+                 fixed_sitk=None,
+                 moving_sitk=None,
                  fixed_sitk_mask=None,
                  moving_sitk_mask=None,
                  options="",
@@ -267,13 +267,18 @@ class RegF3D(NiftyReg):
     def get_deformed_image_sitk(self, fixed_sitk, moving_sitk,
                                 interpolation_order, debug=0, endl=" \\\n"):
 
+        # REMARK:
+        # Not possible to write registration transform that way since
+        # some header information gets lost! Therefore, read again the one
+        # which was the output of NiftyReg (and hope that file is not been
+        # deleted)
         # Create and delete all possibly existing files in the directory
-        ph.create_directory(self._dir_tmp, delete_files=True)
+        # ph.create_directory(self._dir_tmp, delete_files=True)
+        # sitk.WriteImage(self.get_registration_transform_sitk(),
+        #                 self._registration_control_point_grid_str)
 
         sitk.WriteImage(fixed_sitk, self._fixed_str)
         sitk.WriteImage(moving_sitk, self._moving_str)
-        sitk.WriteImage(self.get_registration_transform_sitk(),
-                        self._registration_control_point_grid_str)
 
         cmd = REG_RESAMPLE_EXE + endl
         cmd += "-ref " + self._fixed_str + endl
@@ -285,7 +290,8 @@ class RegF3D(NiftyReg):
         # Execute registration
         ph.execute_command(cmd, verbose=debug)
 
-        return sitk.ReadImage(self._warped_moving_str)
+        return sitk.ReadImage(self._warped_moving_str,
+                              moving_sitk.GetPixelIDValue())
 
     # def _get_inverted_transform(self,
     #                             input_def_field_sitk,
