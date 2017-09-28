@@ -3,10 +3,10 @@
 This software package provides the interface to a collection of registration tools developed in support of various research-focused toolkits within the [GIFT-Surg](http://www.gift-surg.ac.uk/) project.
 
 Incorporated registration methods are
-# [SimpleITK](http://www.simpleitk.org/)
-# [(Wrap)ITK](https://itk.org/)
-# [NiftyReg](http://cmictig.cs.ucl.ac.uk/component/content/article/software/niftyreg?Itemid=145)
-# [FLIRT](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/)
+* [SimpleITK](http://www.simpleitk.org/)
+* [(Wrap)ITK](https://itk.org/)
+* [NiftyReg](http://cmictig.cs.ucl.ac.uk/component/content/article/software/niftyreg?Itemid=145)
+* [FLIRT](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/)
 
 If you have any questions or comments (or find bugs), please drop me an email to `michael.ebner.14@ucl.ac.uk`.
 
