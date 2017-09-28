@@ -8,6 +8,7 @@
 import os
 import sys
 import SimpleITK as sitk
+import numpy as np
 
 # Import modules from src-folder
 import pythonhelper.PythonHelper as ph
@@ -29,18 +30,18 @@ class SimpleItkRegistration(SimpleItkRegistrationBase):
         metric="Correlation",
         metric_params=None,
         interpolator="Linear",
-        optimizer="ConjugateGradientLineSearch",
-        optimizer_params={
-            "learningRate": 1,
-            "numberOfIterations": 100,
-        },
-        # optimizer="RegularStepGradientDescent",
+        # optimizer="ConjugateGradientLineSearch",
         # optimizer_params={
-        #     "minStep": 1e-6,
-        #     "numberOfIterations": 200,
-        #     "gradientMagnitudeTolerance": 1e-6,
         #     "learningRate": 1,
+        #     "numberOfIterations": 100,
         # },
+        optimizer="RegularStepGradientDescent",
+        optimizer_params={
+            "minStep": 1e-6,
+            "numberOfIterations": 200,
+            "gradientMagnitudeTolerance": 1e-6,
+            "learningRate": 1,
+        },
         initializer_type=None,
         use_multiresolution_framework=False,
         optimizer_scales="PhysicalShift",
@@ -87,7 +88,9 @@ class SimpleItkRegistration(SimpleItkRegistrationBase):
 
         # Set the initial transform and parameters to optimize
         if self._registration_type == "Rigid":
-            initial_transform = eval("sitk.Euler%dDTransform()" % (dimension))
+            initial_transform = eval(
+                # "sitk.Euler%dDTransform()" % (dimension))
+                "sitk.VersorRigid%dDTransform()" % (dimension))
 
         elif self._registration_type == "Similarity":
             initial_transform = eval(
@@ -101,14 +104,25 @@ class SimpleItkRegistration(SimpleItkRegistrationBase):
                              (self._registration_type))
 
         if self._initializer_type is not None:
+            if self._initializer_type in ["MOMENTS", "GEOMETRY"]:
+                moving_sitk = self._moving_sitk
+                initializer_type = self._initializer_type
+            elif self._initializer_type == "SelfMOMENTS":
+                moving_sitk = self._fixed_sitk
+                initializer_type = "MOMENTS"
+            elif self._initializer_type == "SelfGEOMETRY":
+                moving_sitk = self._fixed_sitk
+                initializer_type = "GEOMETRY"
+            else:
+                raise ValueError("Initializer type '%s' unknown"
+                                 % (self._initializer_type))
             initial_transform = sitk.CenteredTransformInitializer(
                 self._fixed_sitk,
-                self._moving_sitk,
+                moving_sitk,
                 initial_transform,
                 eval("sitk.CenteredTransformInitializerFilter.%s" % (
-                    self._initializer_type))
+                    initializer_type))
             )
-
         registration_method.SetInitialTransform(
             initial_transform, inPlace=True)
 
@@ -184,9 +198,25 @@ class SimpleItkRegistration(SimpleItkRegistrationBase):
             #     self._fixed_sitk, self._moving_sitk)
 
         if self._registration_type == "Rigid":
-            registration_transform_sitk = eval(
-                "sitk.Euler%dDTransform(registration_transform_sitk)" % (
-                    dimension))
+            try:
+                # Euler Transform used:
+                registration_transform_sitk = eval(
+                    "sitk.Euler%dDTransform(registration_transform_sitk)" % (
+                        dimension))
+            except:
+                # VersorRigid used: Transform from VersorRigid to Euler
+                registration_transform_sitk = eval(
+                    "sitk.VersorRigid%dDTransform(registration_transform_sitk)"
+                    % (dimension))
+                tmp = eval("sitk.Euler%dDTransform()" % (dimension))
+                tmp.SetMatrix(
+                    registration_transform_sitk.GetMatrix())
+                tmp.SetTranslation(
+                    registration_transform_sitk.GetTranslation())
+                tmp.SetCenter(
+                    registration_transform_sitk.GetCenter())
+                registration_transform_sitk = tmp
+
         elif self._registration_type == "Similarity":
             registration_transform_sitk = eval(
                 "sitk.Similarity%dDTransform(registration_transform_sitk)" % (
