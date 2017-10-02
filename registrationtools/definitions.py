@@ -1,10 +1,14 @@
 import os
 import sys
 
+from pythonhelper.definitions import DIR_TMP
+# from pythonhelper.definitions import ITKSNAP_EXE
+# from pythonhelper.definitions import FSLVIEW_EXE
+# from pythonhelper.definitions import NIFTYVIEW_EXE
+
 DIR_ROOT = os.path.realpath(
     os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 DIR_TEST = os.path.join(DIR_ROOT, "data")
-DIR_TMP = "/tmp/"
 
 FLIRT_EXE = "flirt"
 C3D_AFFINE_TOOL_EXE = "c3d_affine_tool"  # for FLIRT parameter conversion
