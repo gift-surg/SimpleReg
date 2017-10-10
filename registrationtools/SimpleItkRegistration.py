@@ -77,8 +77,9 @@ class SimpleItkRegistration(SimpleItkRegistrationBase):
         self._shrink_factors = shrink_factors
         self._smoothing_sigmas = smoothing_sigmas
 
-        self._verbose = verbose
-        self._use_multiresolution_framework = use_multiresolution_framework
+        self._verbose = bool(verbose)
+        self._use_multiresolution_framework = bool(
+            use_multiresolution_framework)
 
     def _run(self):
 
