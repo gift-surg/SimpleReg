@@ -1,10 +1,10 @@
 import os
 import sys
 
-from pythonhelper.definitions import DIR_TMP
-# from pythonhelper.definitions import ITKSNAP_EXE
-# from pythonhelper.definitions import FSLVIEW_EXE
-# from pythonhelper.definitions import NIFTYVIEW_EXE
+from pysitk.definitions import DIR_TMP
+# from pysitk.definitions import ITKSNAP_EXE
+# from pysitk.definitions import FSLVIEW_EXE
+# from pysitk.definitions import NIFTYVIEW_EXE
 
 DIR_ROOT = os.path.realpath(
     os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))

@@ -7,7 +7,7 @@
 # Import libraries
 from abc import ABCMeta, abstractmethod
 
-from registrationtools.SimpleItkRegistrationBase \
+from simplereg.SimpleItkRegistrationBase \
     import SimpleItkRegistrationBase
 
 

@@ -5,8 +5,8 @@
 # \date       Aug 2017
 
 # Import libraries
-import pythonhelper.PythonHelper as ph
-import pythonhelper.SimpleITKHelper as sitkh
+import pysitk.PythonHelper as ph
+import pysitk.SimpleITKHelper as sitkh
 
 from abc import ABCMeta, abstractmethod
 

@@ -10,10 +10,10 @@ import numpy as np
 import SimpleITK as sitk
 import unittest
 
-import pythonhelper.SimpleITKHelper as sitkh
+import pysitk.SimpleITKHelper as sitkh
 
-from registrationtools.definitions import DIR_TEST
-import registrationtools.SimpleItkRegistration as sitkreg
+from simplereg.definitions import DIR_TEST
+import simplereg.SimpleItkRegistration as sitkreg
 
 
 class TestSimpleItkRegistration(unittest.TestCase):

@@ -11,8 +11,8 @@ import itk
 import SimpleITK as sitk
 
 # Import modules from src-folder
-import pythonhelper.PythonHelper as ph
-import pythonhelper.SimpleITKHelper as sitkh
+import pysitk.PythonHelper as ph
+import pysitk.SimpleITKHelper as sitkh
 
 
 class WrapItkRegistration(object):

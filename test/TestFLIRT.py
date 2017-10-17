@@ -10,10 +10,10 @@ import numpy as np
 import SimpleITK as sitk
 import unittest
 
-import pythonhelper.SimpleITKHelper as sitkh
+import pysitk.SimpleITKHelper as sitkh
 
-from registrationtools.definitions import DIR_TEST
-import registrationtools.FLIRT
+from simplereg.definitions import DIR_TEST
+import simplereg.FLIRT
 
 
 class TestFLIRT(unittest.TestCase):
@@ -101,7 +101,7 @@ class TestFLIRT(unittest.TestCase):
         self.moving_sitk = self.moving_sitk_2D
         self.show_fig = 0
 
-        self.registration_method = registrationtools.FLIRT.FLIRT(
+        self.registration_method = simplereg.FLIRT.FLIRT(
             fixed_sitk=self.fixed_sitk,
             moving_sitk=self.moving_sitk,
             options="-2D -v",
@@ -115,7 +115,7 @@ class TestFLIRT(unittest.TestCase):
         self.moving_sitk = self.moving_sitk_3D
         self.show_fig = 0
 
-        self.registration_method = registrationtools.FLIRT.FLIRT(
+        self.registration_method = simplereg.FLIRT.FLIRT(
             fixed_sitk=self.fixed_sitk,
             moving_sitk=self.moving_sitk,
             options="-dof 6 -v",
