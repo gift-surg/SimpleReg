@@ -10,8 +10,8 @@ import numpy as np
 import SimpleITK as sitk
 from abc import ABCMeta, abstractmethod
 
-import pysitk.PythonHelper as ph
-import pysitk.SimpleITKHelper as sitkh
+import pysitk.python_helper as ph
+import pysitk.simple_itk_helper as sitkh
 
 from simplereg.definitions import DIR_TMP
 from simplereg.definitions import REG_ALADIN_EXE
@@ -19,7 +19,7 @@ from simplereg.definitions import REG_F3D_EXE
 from simplereg.definitions import REG_RESAMPLE_EXE
 from simplereg.definitions import REG_TRANSFORM_EXE
 
-from simplereg.WrapperRegistration import WrapperRegistration
+from simplereg.wrapper_registration import WrapperRegistration
 
 
 class NiftyReg(WrapperRegistration):

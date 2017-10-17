@@ -10,10 +10,10 @@ import numpy as np
 import SimpleITK as sitk
 import unittest
 
-import pysitk.SimpleITKHelper as sitkh
+import pysitk.simple_itk_helper as sitkh
 
 from simplereg.definitions import DIR_TEST
-import simplereg.NiftyReg
+import simplereg.niftyreg
 
 
 class TestNiftyReg(unittest.TestCase):
@@ -109,7 +109,7 @@ class TestNiftyReg(unittest.TestCase):
         self.moving_sitk = self.moving_sitk_2D
         self.show_fig = 0
 
-        self.registration_method = simplereg.NiftyReg.RegAladin(
+        self.registration_method = simplereg.niftyreg.RegAladin(
             fixed_sitk=self.fixed_sitk,
             moving_sitk=self.moving_sitk,
         )
@@ -124,7 +124,7 @@ class TestNiftyReg(unittest.TestCase):
         self.moving_sitk = self.moving_sitk_3D
         self.show_fig = 0
 
-        self.registration_method = simplereg.NiftyReg.RegAladin(
+        self.registration_method = simplereg.niftyreg.RegAladin(
             fixed_sitk=self.fixed_sitk,
             moving_sitk=self.moving_sitk,
         )
@@ -140,7 +140,7 @@ class TestNiftyReg(unittest.TestCase):
         self.show_fig = 0
 
         # ------------------------------RegAladin---------------------------
-        self.registration_method = simplereg.NiftyReg.RegF3D(
+        self.registration_method = simplereg.niftyreg.RegF3D(
             fixed_sitk=self.fixed_sitk,
             moving_sitk=self.moving_sitk,
         )
@@ -155,7 +155,7 @@ class TestNiftyReg(unittest.TestCase):
         self.show_fig = 1
 
         # ------------------------------RegAladin---------------------------
-        self.registration_method = simplereg.NiftyReg.RegF3D(
+        self.registration_method = simplereg.niftyreg.RegF3D(
             fixed_sitk=self.fixed_sitk,
             moving_sitk=self.moving_sitk,
         )

@@ -7,12 +7,10 @@
 # Import libraries
 import SimpleITK as sitk
 
-import pysitk.PythonHelper as ph
-import pysitk.SimpleITKHelper as sitkh
+import pysitk.python_helper as ph
+import pysitk.simple_itk_helper as sitkh
 
 from abc import ABCMeta, abstractmethod
-
-# from simplereg.RegistrationBase import RegistrationBase
 
 
 ##

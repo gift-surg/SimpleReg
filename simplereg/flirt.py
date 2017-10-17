@@ -11,14 +11,14 @@ import os
 import numpy as np
 import SimpleITK as sitk
 
-import pysitk.PythonHelper as ph
-import pysitk.SimpleITKHelper as sitkh
+import pysitk.python_helper as ph
+import pysitk.simple_itk_helper as sitkh
 
 from simplereg.definitions import DIR_TMP
 from simplereg.definitions import FLIRT_EXE
 from simplereg.definitions import C3D_AFFINE_TOOL_EXE
 
-from simplereg.WrapperRegistration import WrapperRegistration
+from simplereg.wrapper_registration import WrapperRegistration
 
 
 class FLIRT(WrapperRegistration):

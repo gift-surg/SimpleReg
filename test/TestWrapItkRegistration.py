@@ -11,10 +11,10 @@ import itk
 import SimpleITK as sitk
 import unittest
 
-import pysitk.SimpleITKHelper as sitkh
+import pysitk.simple_itk_helper as sitkh
 
 from simplereg.definitions import DIR_TEST
-import simplereg.WrapItkRegistration as itkreg
+import simplereg.wrap_itk_registration as itkreg
 
 
 class TestWrapItkRegistration(unittest.TestCase):

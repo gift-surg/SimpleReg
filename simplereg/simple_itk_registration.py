@@ -11,10 +11,10 @@ import SimpleITK as sitk
 import numpy as np
 
 # Import modules from src-folder
-import pysitk.PythonHelper as ph
-import pysitk.SimpleITKHelper as sitkh
+import pysitk.python_helper as ph
+import pysitk.simple_itk_helper as sitkh
 
-from simplereg.SimpleItkRegistrationBase \
+from simplereg.simple_itk_registration_base \
     import SimpleItkRegistrationBase
 
 
