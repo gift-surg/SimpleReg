@@ -89,9 +89,13 @@ class SimpleItkRegistration(SimpleItkRegistrationBase):
 
         # Set the initial transform and parameters to optimize
         if self._registration_type == "Rigid":
-            initial_transform = eval(
-                # "sitk.Euler%dDTransform()" % (dimension))
-                "sitk.VersorRigid%dDTransform()" % (dimension))
+            # VersorRigid2DTransform does not exist, unfortunately
+            if dimension == 2:
+                initial_transform = eval(
+                    "sitk.Euler%dDTransform()" % (dimension))
+            else:
+                initial_transform = eval(
+                    "sitk.VersorRigid%dDTransform()" % (dimension))
 
         elif self._registration_type == "Similarity":
             initial_transform = eval(
