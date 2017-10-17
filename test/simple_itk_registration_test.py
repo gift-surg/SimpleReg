@@ -1,5 +1,5 @@
 ##
-# \file TestSimpleItkRegistration.py
+# \file simple_itk_registration_test.py
 #  \brief  Class containing unit tests for module SimpleItkRegistration
 #
 #  \author Michael Ebner (michael.ebner.14@ucl.ac.uk)

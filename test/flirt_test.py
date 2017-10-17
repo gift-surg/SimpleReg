@@ -1,6 +1,6 @@
 ##
-# \file TestNiftyReg.py
-#  \brief  Class containing unit tests for module NiftyReg
+# \file flirt_test.py
+#  \brief  Class containing unit tests for module FLIRT
 #
 #  \author Michael Ebner (michael.ebner.14@ucl.ac.uk)
 #  \date Aug 2017
@@ -13,15 +13,14 @@ import unittest
 import pysitk.simple_itk_helper as sitkh
 
 from simplereg.definitions import DIR_TEST
-import simplereg.niftyreg
+import simplereg.flirt
 
 
-class TestNiftyReg(unittest.TestCase):
+class TestFLIRT(unittest.TestCase):
 
     def setUp(self):
 
         self.accuracy = 10
-        self.show_fig = 0
 
         # ----------------------------------2D---------------------------------
         self.fixed_sitk_2D = sitk.ReadImage(
@@ -37,7 +36,7 @@ class TestNiftyReg(unittest.TestCase):
         self.moving_sitk_3D = sitk.ReadImage(
             os.path.join(DIR_TEST, "3D_Brain_Template.nii.gz"))
 
-    def tearDown_reg_aladin(self):
+    def tearDown(self):
         print("Computational time = %s" % (
             self.registration_method.get_computational_time()))
 
@@ -92,73 +91,34 @@ class TestNiftyReg(unittest.TestCase):
                  ],
                 label=["warped_moving", "warped_moving_2", "diff"])
 
-    def tearDown_reg_f3d(self):
-        print("Computational time = %s" % (
-            self.registration_method.get_computational_time()))
-
-        warped_moving_sitk = self.registration_method.get_warped_moving_sitk()
-
-        if self.show_fig:
-            sitkh.show_sitk_image(
-                [self.fixed_sitk, self.moving_sitk, warped_moving_sitk],
-                label=["fixed", "moving", "warped_moving"])
-
-    def test_registration_reg_aladin_2D(self):
+    def test_registration_2D(self):
+        """
+        Registration transform is correct but warped_moving.nii.gz obtained
+        by FLIRT seems to be flawed.
+        """
 
         self.fixed_sitk = self.fixed_sitk_2D
         self.moving_sitk = self.moving_sitk_2D
         self.show_fig = 0
 
-        self.registration_method = simplereg.niftyreg.RegAladin(
+        self.registration_method = simplereg.flirt.FLIRT(
             fixed_sitk=self.fixed_sitk,
             moving_sitk=self.moving_sitk,
+            options="-2D -v",
         )
 
         self.registration_method.run()
 
-        self.tearDown_reg_aladin()
-
-    def test_registration_reg_aladin_3D(self):
+    def test_registration_3D(self):
 
         self.fixed_sitk = self.fixed_sitk_3D
         self.moving_sitk = self.moving_sitk_3D
         self.show_fig = 0
 
-        self.registration_method = simplereg.niftyreg.RegAladin(
+        self.registration_method = simplereg.flirt.FLIRT(
             fixed_sitk=self.fixed_sitk,
             moving_sitk=self.moving_sitk,
+            options="-dof 6 -v",
         )
 
         self.registration_method.run()
-
-        self.tearDown_reg_aladin()
-
-    def test_registration_reg_f3d_2D(self):
-
-        self.fixed_sitk = self.fixed_sitk_2D
-        self.moving_sitk = self.moving_sitk_2D
-        self.show_fig = 0
-
-        # ------------------------------RegAladin---------------------------
-        self.registration_method = simplereg.niftyreg.RegF3D(
-            fixed_sitk=self.fixed_sitk,
-            moving_sitk=self.moving_sitk,
-        )
-
-        self.registration_method.run()
-        self.tearDown_reg_f3d()
-
-    def test_registration_reg_f3d_3D(self):
-
-        self.fixed_sitk = self.fixed_sitk_3D
-        self.moving_sitk = self.moving_sitk_3D
-        self.show_fig = 1
-
-        # ------------------------------RegAladin---------------------------
-        self.registration_method = simplereg.niftyreg.RegF3D(
-            fixed_sitk=self.fixed_sitk,
-            moving_sitk=self.moving_sitk,
-        )
-
-        self.registration_method.run()
-        self.tearDown_reg_f3d()
