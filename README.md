@@ -24,7 +24,7 @@ In order to run the provided unit tests, please execute
 
 ## Licensing and Copyright
 Copyright (c) 2017, [University College London][ucl].
-This framework is available as free open-source software under the [BSD-3-Clause License][bsd]. Other licenses may apply for dependencies.
+This framework is made available as free open-source software under the [BSD-3-Clause License][bsd]. Other licenses may apply for dependencies.
 
 [citation]: http://www.sciencedirect.com/science/article/pii/S1053811917308042
 [mebner]: http://cmictig.cs.ucl.ac.uk/people/phd-students/michael-ebner
