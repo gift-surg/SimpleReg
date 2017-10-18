@@ -16,7 +16,7 @@ from simplereg.definitions import DIR_TEST
 import simplereg.niftyreg
 
 
-class TestNiftyReg(unittest.TestCase):
+class NiftyRegTest(unittest.TestCase):
 
     def setUp(self):
 
@@ -112,6 +112,7 @@ class TestNiftyReg(unittest.TestCase):
         self.registration_method = simplereg.niftyreg.RegAladin(
             fixed_sitk=self.fixed_sitk,
             moving_sitk=self.moving_sitk,
+            options="-voff",
         )
 
         self.registration_method.run()
@@ -127,6 +128,7 @@ class TestNiftyReg(unittest.TestCase):
         self.registration_method = simplereg.niftyreg.RegAladin(
             fixed_sitk=self.fixed_sitk,
             moving_sitk=self.moving_sitk,
+            options="-voff",
         )
 
         self.registration_method.run()
@@ -143,6 +145,7 @@ class TestNiftyReg(unittest.TestCase):
         self.registration_method = simplereg.niftyreg.RegF3D(
             fixed_sitk=self.fixed_sitk,
             moving_sitk=self.moving_sitk,
+            options="-voff",
         )
 
         self.registration_method.run()
@@ -158,6 +161,7 @@ class TestNiftyReg(unittest.TestCase):
         self.registration_method = simplereg.niftyreg.RegF3D(
             fixed_sitk=self.fixed_sitk,
             moving_sitk=self.moving_sitk,
+            options="-voff",
         )
 
         self.registration_method.run()

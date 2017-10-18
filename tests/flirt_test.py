@@ -16,7 +16,7 @@ from simplereg.definitions import DIR_TEST
 import simplereg.flirt
 
 
-class TestFLIRT(unittest.TestCase):
+class FlirtTest(unittest.TestCase):
 
     def setUp(self):
 
@@ -104,7 +104,7 @@ class TestFLIRT(unittest.TestCase):
         self.registration_method = simplereg.flirt.FLIRT(
             fixed_sitk=self.fixed_sitk,
             moving_sitk=self.moving_sitk,
-            options="-2D -v",
+            options="-2D",
         )
 
         self.registration_method.run()
@@ -118,7 +118,7 @@ class TestFLIRT(unittest.TestCase):
         self.registration_method = simplereg.flirt.FLIRT(
             fixed_sitk=self.fixed_sitk,
             moving_sitk=self.moving_sitk,
-            options="-dof 6 -v",
+            options="-dof 6",
         )
 
         self.registration_method.run()

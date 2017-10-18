@@ -16,7 +16,7 @@ from simplereg.definitions import DIR_TEST
 import simplereg.simple_itk_registration as sitkreg
 
 
-class TestSimpleItkRegistration(unittest.TestCase):
+class SimpleItkRegistrationTest(unittest.TestCase):
 
     def setUp(self):
 

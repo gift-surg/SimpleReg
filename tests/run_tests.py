@@ -15,8 +15,8 @@ import sys
 import os
 
 # Import modules for unit testing
-# from niftyreg_test import *
-# from flirt_test import *
+from niftyreg_test import *
+from flirt_test import *
 from simple_itk_registration_test import *
 from wrap_itk_registration_test import *
 

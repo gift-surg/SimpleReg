@@ -17,7 +17,7 @@ from simplereg.definitions import DIR_TEST
 import simplereg.wrap_itk_registration as itkreg
 
 
-class TestWrapItkRegistration(unittest.TestCase):
+class WrapItkRegistrationTest(unittest.TestCase):
 
     def setUp(self):
 
