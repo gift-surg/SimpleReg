@@ -231,7 +231,7 @@ class SimpleItkRegistration(SimpleItkRegistrationBase):
                 registration_transform_sitk)
 
         if self._verbose:
-            ph.print_info("Summary RegistrationSimpleITK:")
+            ph.print_info("Summary SimpleItkRegistration:")
             ph.print_info("\tOptimizer\'s stopping condition: %s" % (
                 registration_method.GetOptimizerStopConditionDescription()))
             ph.print_info("\tFinal metric value: %s" % (
