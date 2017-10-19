@@ -10,14 +10,13 @@
 import os
 import numpy as np
 import SimpleITK as sitk
+import nipype.interfaces.fsl
+import nipype.interfaces.c3
 
 import pysitk.python_helper as ph
 import pysitk.simple_itk_helper as sitkh
 
 from simplereg.definitions import DIR_TMP
-from simplereg.definitions import FLIRT_EXE
-from simplereg.definitions import C3D_AFFINE_TOOL_EXE
-
 from simplereg.wrapper_registration import WrapperRegistration
 
 
@@ -62,27 +61,29 @@ class FLIRT(WrapperRegistration):
         # Create and delete all possibly existing files in the directory
         ph.create_directory(self._dir_tmp, delete_files=True)
 
-        cmd = FLIRT_EXE + endl
-        cmd += "-in " + self._moving_str + endl
-        cmd += "-ref " + self._fixed_str + endl
-        cmd += "-out " + self._warped_moving_str + endl
-        cmd += "-omat " + self._registration_transform_str + endl
-
         sitk.WriteImage(self._fixed_sitk, self._fixed_str)
         sitk.WriteImage(self._moving_sitk, self._moving_str)
 
+        flt = nipype.interfaces.fsl.FLIRT()
+        flt.inputs.in_file = self._moving_str
+        flt.inputs.reference = self._fixed_str
+        flt.inputs.out_file = self._warped_moving_str
+        flt.inputs.out_matrix_file = self._registration_transform_str
+
         if self._fixed_sitk_mask is not None:
             sitk.WriteImage(self._fixed_sitk_mask, self._fixed_mask_str)
-            cmd += "-refweight " + self._fixed_mask_str + endl
+            flt.inputs.ref_weight = self._fixed_mask_str
 
         if self._moving_sitk_mask is not None:
             sitk.WriteImage(self._moving_sitk_mask, self._moving_mask_str)
-            cmd += "-inweight " + self._moving_mask_str + endl
+            flt.inputs.in_weight = self._moving_mask_str
 
-        cmd += self._options
+        flt.inputs.args = self._options
 
         # Execute registration
-        ph.execute_command(cmd, verbose=debug)
+        if debug:
+            print(flt.cmdline)
+        flt.run()
 
         # Read warped image
         self._warped_moving_sitk = sitk.ReadImage(self._warped_moving_str)
@@ -105,15 +106,17 @@ class FLIRT(WrapperRegistration):
     #
     def _convert_to_sitk_transform(self, verbose, endl):
 
-        cmd = C3D_AFFINE_TOOL_EXE + endl
-        cmd += "-ref " + self._fixed_str + endl
-        cmd += "-src " + self._moving_str + endl
-        cmd += self._registration_transform_str + endl
-        cmd += "-fsl2ras" + endl
-        cmd += "-oitk " + self._registration_transform_sitk_str
+        c3d = nipype.interfaces.c3.C3dAffineTool()
+        c3d.inputs.reference_file = self._fixed_str
+        c3d.inputs.source_file = self._moving_str
+        c3d.inputs.transform_file = self._registration_transform_str
+        c3d.inputs.fsl2ras = True
+        c3d.inputs.itk_transform = self._registration_transform_sitk_str
 
         # Execute conversion
-        ph.execute_command(cmd, verbose=verbose)
+        if verbose:
+            print(c3d.cmdline)
+        c3d.run()
 
         # Read transform and convert to affine registration
         trafo_sitk = sitk.ReadTransform(self._registration_transform_sitk_str)
