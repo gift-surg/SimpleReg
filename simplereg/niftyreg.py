@@ -9,16 +9,12 @@ import os
 import numpy as np
 import SimpleITK as sitk
 from abc import ABCMeta, abstractmethod
+import nipype.interfaces.niftyreg
 
 import pysitk.python_helper as ph
 import pysitk.simple_itk_helper as sitkh
 
 from simplereg.definitions import DIR_TMP
-from simplereg.definitions import REG_ALADIN_EXE
-from simplereg.definitions import REG_F3D_EXE
-from simplereg.definitions import REG_RESAMPLE_EXE
-from simplereg.definitions import REG_TRANSFORM_EXE
-
 from simplereg.wrapper_registration import WrapperRegistration
 
 
@@ -31,6 +27,7 @@ class NiftyReg(WrapperRegistration):
                  fixed_sitk_mask,
                  moving_sitk_mask,
                  options,
+                 omp_cores,
                  subfolder):
 
         WrapperRegistration.__init__(self,
@@ -56,6 +53,8 @@ class NiftyReg(WrapperRegistration):
         self._warped_moving_mask_str = os.path.join(
             self._dir_tmp, "warped_mask.nii.gz")
 
+        self._omp_cores = omp_cores
+
     def _run(self):
 
         # Create and delete all possibly existing files in the directory
@@ -79,7 +78,9 @@ class RegAladin(NiftyReg):
                  fixed_sitk_mask=None,
                  moving_sitk_mask=None,
                  options="",
-                 subfolder="RegAladin"):
+                 subfolder="RegAladin",
+                 omp_cores=8,
+                 ):
 
         NiftyReg.__init__(self,
                           fixed_sitk=fixed_sitk,
@@ -88,32 +89,34 @@ class RegAladin(NiftyReg):
                           moving_sitk_mask=moving_sitk_mask,
                           options=options,
                           subfolder=subfolder,
+                          omp_cores=omp_cores,
                           )
 
         self._registration_transform_str = os.path.join(
             self._dir_tmp, "registration_transform.txt")
 
-    def _run(self, debug=0, endl=" \\\n"):
+    def _run(self, debug=0):
 
         super(RegAladin, self)._run()
 
-        cmd = REG_ALADIN_EXE + endl
-        cmd += "-ref " + self._fixed_str + endl
-        cmd += "-flo " + self._moving_str + endl
+        nreg = nipype.interfaces.niftyreg.RegAladin()
+        nreg.inputs.ref_file = self._fixed_str
+        nreg.inputs.flo_file = self._moving_str
+        nreg.inputs.res_file = self._warped_moving_str
+        nreg.inputs.aff_file = self._registration_transform_str
+        nreg.inputs.omp_core_val = self._omp_cores
+        nreg.inputs.args = self._options
 
         if self._fixed_sitk_mask is not None:
-            cmd += "-rmask " + self._fixed_mask_str + endl
+            nreg.inputs.rmask_file = self._fixed_mask_str
 
         if self._moving_sitk_mask is not None:
-            cmd += "-fmask " + self._moving_mask_str + endl
-
-        cmd += "-res " + self._warped_moving_str + endl
-        cmd += "-aff " + self._registration_transform_str + endl
-
-        cmd += self._options
+            nreg.inputs.fmask_file = self._moving_mask_str
 
         # Execute registration
-        ph.execute_command(cmd, verbose=debug)
+        if debug:
+            print(nreg.cmdline)
+        nreg.run()
 
         # Read warped image
         self._warped_moving_sitk = sitk.ReadImage(self._warped_moving_str)
@@ -185,7 +188,9 @@ class RegF3D(NiftyReg):
                  fixed_sitk_mask=None,
                  moving_sitk_mask=None,
                  options="",
-                 subfolder="RegF3D"):
+                 subfolder="RegF3D",
+                 omp_cores=8,
+                 ):
 
         NiftyReg.__init__(self,
                           fixed_sitk=fixed_sitk,
@@ -194,32 +199,34 @@ class RegF3D(NiftyReg):
                           moving_sitk_mask=moving_sitk_mask,
                           options=options,
                           subfolder=subfolder,
+                          omp_cores=omp_cores,
                           )
 
         self._registration_control_point_grid_str = os.path.join(
             self._dir_tmp, "registration_cpp.nii.gz")
 
-    def _run(self, debug=0, endl=" \\\n"):
+    def _run(self, debug=0):
 
         super(RegF3D, self)._run()
 
-        cmd = REG_F3D_EXE + endl
-        cmd += "-ref " + self._fixed_str + endl
-        cmd += "-flo " + self._moving_str + endl
+        nreg = nipype.interfaces.niftyreg.RegF3D()
+        nreg.inputs.ref_file = self._fixed_str
+        nreg.inputs.flo_file = self._moving_str
+        nreg.inputs.res_file = self._warped_moving_str
+        nreg.inputs.cpp_file = self._registration_control_point_grid_str
+        nreg.inputs.omp_core_val = self._omp_cores
+        nreg.inputs.args = self._options
 
         if self._fixed_sitk_mask is not None:
-            cmd += "-rmask " + self._fixed_mask_str + endl
+            nreg.inputs.rmask_file = self._fixed_mask_str
 
         if self._moving_sitk_mask is not None:
-            cmd += "-fmask " + self._moving_mask_str + endl
-
-        cmd += "-res " + self._warped_moving_str + endl
-        cmd += "-cpp " + self._registration_control_point_grid_str + endl
-
-        cmd += self._options
+            nreg.inputs.fmask_file = self._moving_mask_str
 
         # Execute registration
-        ph.execute_command(cmd, verbose=debug)
+        if debug:
+            print(nreg.cmdline)
+        nreg.run()
 
         # Read warped image
         self._warped_moving_sitk = sitk.ReadImage(self._warped_moving_str)
@@ -240,7 +247,7 @@ class RegF3D(NiftyReg):
     def _get_warped_moving_sitk(self):
         return self._warped_moving_sitk
 
-    def _get_warped_moving_sitk_mask(self, debug=0, endl=" \\\n"):
+    def _get_warped_moving_sitk_mask(self, debug=0):
 
         warped_moving_sitk_mask = self.get_deformed_image_sitk(
             fixed_sitk=self._fixed_sitk,
@@ -259,13 +266,11 @@ class RegF3D(NiftyReg):
     # \param      moving_sitk          Moving image as sitk.Image
     # \param      interpolation_order  Interpolation order, integer
     # \param      debug                The debug
-
-    # \param      endl                 The endl
     #
     # \return     The deformed image sitk.
     #
     def get_deformed_image_sitk(self, fixed_sitk, moving_sitk,
-                                interpolation_order, debug=0, endl=" \\\n"):
+                                interpolation_order, debug=1):
 
         # REMARK:
         # Not possible to write registration transform that way since
@@ -280,15 +285,18 @@ class RegF3D(NiftyReg):
         sitk.WriteImage(fixed_sitk, self._fixed_str)
         sitk.WriteImage(moving_sitk, self._moving_str)
 
-        cmd = REG_RESAMPLE_EXE + endl
-        cmd += "-ref " + self._fixed_str + endl
-        cmd += "-flo " + self._moving_str + endl
-        cmd += "-trans " + self._registration_control_point_grid_str + endl
-        cmd += "-res " + self._warped_moving_str + endl
-        cmd += "-inter " + str(interpolation_order)
+        nreg = nipype.interfaces.niftyreg.RegResample()
+        nreg.inputs.ref_file = self._fixed_str
+        nreg.inputs.flo_file = self._moving_str
+        nreg.inputs.trans_file = self._registration_control_point_grid_str
+        nreg.inputs.res_file = self._warped_moving_str
+        nreg.inputs.omp_core_val = self._omp_cores
+        nreg.inputs.args = "-inter " + str(interpolation_order)
 
         # Execute registration
-        ph.execute_command(cmd, verbose=debug)
+        if debug:
+            print(nreg.cmdline)
+        nreg.run()
 
         return sitk.ReadImage(self._warped_moving_str,
                               moving_sitk.GetPixelIDValue())
