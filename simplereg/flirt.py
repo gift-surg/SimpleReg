@@ -69,6 +69,7 @@ class FLIRT(WrapperRegistration):
         flt.inputs.reference = self._fixed_str
         flt.inputs.out_file = self._warped_moving_str
         flt.inputs.out_matrix_file = self._registration_transform_str
+        flt.inputs.output_type = "NIFTI_GZ"
 
         if self._fixed_sitk_mask is not None:
             sitk.WriteImage(self._fixed_sitk_mask, self._fixed_mask_str)
