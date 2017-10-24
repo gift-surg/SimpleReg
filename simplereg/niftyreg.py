@@ -14,7 +14,7 @@ import nipype.interfaces.niftyreg
 import pysitk.python_helper as ph
 import pysitk.simple_itk_helper as sitkh
 
-from simplereg.definitions import DIR_TMP
+from simplereg.definitions import DIR_TMP, OMP
 from simplereg.wrapper_registration import WrapperRegistration
 
 
@@ -27,7 +27,7 @@ class NiftyReg(WrapperRegistration):
                  fixed_sitk_mask,
                  moving_sitk_mask,
                  options,
-                 omp_cores,
+                 omp,
                  subfolder):
 
         WrapperRegistration.__init__(self,
@@ -53,7 +53,7 @@ class NiftyReg(WrapperRegistration):
         self._warped_moving_mask_str = os.path.join(
             self._dir_tmp, "warped_mask.nii.gz")
 
-        self._omp_cores = omp_cores
+        self._omp = omp
 
     def _run(self):
 
@@ -79,7 +79,7 @@ class RegAladin(NiftyReg):
                  moving_sitk_mask=None,
                  options="",
                  subfolder="RegAladin",
-                 omp_cores=8,
+                 omp=OMP,
                  ):
 
         NiftyReg.__init__(self,
@@ -89,7 +89,7 @@ class RegAladin(NiftyReg):
                           moving_sitk_mask=moving_sitk_mask,
                           options=options,
                           subfolder=subfolder,
-                          omp_cores=omp_cores,
+                          omp=omp,
                           )
 
         self._registration_transform_str = os.path.join(
@@ -104,7 +104,7 @@ class RegAladin(NiftyReg):
         nreg.inputs.flo_file = self._moving_str
         nreg.inputs.res_file = self._warped_moving_str
         nreg.inputs.aff_file = self._registration_transform_str
-        nreg.inputs.omp_core_val = self._omp_cores
+        nreg.inputs.omp_core_val = self._omp
         nreg.inputs.args = self._options
 
         if self._fixed_sitk_mask is not None:
@@ -189,7 +189,7 @@ class RegF3D(NiftyReg):
                  moving_sitk_mask=None,
                  options="",
                  subfolder="RegF3D",
-                 omp_cores=8,
+                 omp=OMP,
                  ):
 
         NiftyReg.__init__(self,
@@ -199,7 +199,7 @@ class RegF3D(NiftyReg):
                           moving_sitk_mask=moving_sitk_mask,
                           options=options,
                           subfolder=subfolder,
-                          omp_cores=omp_cores,
+                          omp=omp,
                           )
 
         self._registration_control_point_grid_str = os.path.join(
@@ -214,7 +214,7 @@ class RegF3D(NiftyReg):
         nreg.inputs.flo_file = self._moving_str
         nreg.inputs.res_file = self._warped_moving_str
         nreg.inputs.cpp_file = self._registration_control_point_grid_str
-        nreg.inputs.omp_core_val = self._omp_cores
+        nreg.inputs.omp_core_val = self._omp
         nreg.inputs.args = self._options
 
         if self._fixed_sitk_mask is not None:
@@ -290,7 +290,7 @@ class RegF3D(NiftyReg):
         nreg.inputs.flo_file = self._moving_str
         nreg.inputs.trans_file = self._registration_control_point_grid_str
         nreg.inputs.res_file = self._warped_moving_str
-        nreg.inputs.omp_core_val = self._omp_cores
+        nreg.inputs.omp_core_val = self._omp
         nreg.inputs.args = "-inter " + str(interpolation_order)
 
         # Execute registration
