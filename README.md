@@ -1,26 +1,34 @@
-# RegistrationTools 
+# SimpleReg 
 
-This software package provides the interface to a collection of registration tools developed in support of various research-focused toolkits within the [GIFT-Surg][giftsurg] project.
+SimpleReg is a Python-based open source toolkit that provides the interface to various registration tools including
 
-Incorporated registration methods are
-* [SimpleITK](http://www.simpleitk.org/)
-* [(Wrap)ITK](https://itk.org/)
-* [NiftyReg](http://cmictig.cs.ucl.ac.uk/component/content/article/software/niftyreg?Itemid=145)
-* [FLIRT](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/)
+* [SimpleITK][simpleitk]
+* [NiftyReg][niftyreg]
+* [FLIRT][fsl]
+* [ITK_NiftyMIC][itkniftymic] as an extension to [WrapITK][wrapitk]
+
+Please not that currently **only Python 2** is supported.
+
+The algorithm and software were developed by [Michael Ebner][mebner] at the [Translational Imaging Group][tig] in the [Centre for Medical Image Computing][cmic] at [University College London (UCL)][ucl].
 
 If you have any questions or comments (or find bugs), please drop me an email to `michael.ebner.14@ucl.ac.uk`.
 
 ## Installation
 
-Required dependencies can be installed using `pip` by running
+Install required external tools and libraries by following the
+* [installation instructions][simplereg-dependencies]
+
+Clone the SimpleReg repository by
+* `git clone git@cmiclab.cs.ucl.ac.uk:GIFT-Surg/SimpleReg.git` 
+
+Install all Python-dependencies by 
 * `pip install -r requirements.txt`
+
+Install SimpleReg by running
 * `pip install -e .`
 
-In addition, you will need to install `itk` for Python. In case you want to make use of the [Volumetric MRI Reconstruction from Motion Corrupted 2D Slices](https://cmiclab.cs.ucl.ac.uk/mebner/VolumetricReconstruction) tool or any of its dependencies, please install the ITK version as described there. Otherwise, simply run
-* `pip install itk`
-
 In order to run the provided unit tests, please execute
-* `python test/runTests.py`
+* `python tests/run_tests.py`
 
 ## Licensing and Copyright
 Copyright (c) 2017, [University College London][ucl].
@@ -39,7 +47,13 @@ This framework is made available as free open-source software under the [BSD-3-C
 [wellcometrust]: http://www.wellcome.ac.uk
 [mssociety]: https://www.mssociety.org.uk/
 [nihr]: http://www.nihr.ac.uk/research
-[volumetricreconstruction]: https://cmiclab.cs.ucl.ac.uk/mebner/VolumetricReconstruction
-[numericalsolver]: https://cmiclab.cs.ucl.ac.uk/mebner/NumericalSolver
-[registrationtools]: https://cmiclab.cs.ucl.ac.uk/mebner/RegistrationTools
-[pythonhelper]: https://cmiclab.cs.ucl.ac.uk/mebner/PythonHelper
+[itkniftymic]: https://cmiclab.cs.ucl.ac.uk/GIFT-Surg/ITK_NiftyMIC/wikis/home
+[niftymic-install]: https://cmiclab.cs.ucl.ac.uk/GIFT-Surg/NiftyMIC/wikis/niftymic-installation
+[nsol]: https://cmiclab.cs.ucl.ac.uk/mebner/NSoL
+[simplereg]: https://cmiclab.cs.ucl.ac.uk/mebner/SimpleReg
+[simplereg-dependencies]: https://cmiclab.cs.ucl.ac.uk/GIFT-Surg/SimpleReg/wikis/simplereg-dependencies
+[pysitk]: https://cmiclab.cs.ucl.ac.uk/mebner/PySiTK
+[wrapitk]: https://itk.org/Wiki/ITK/WrapITK_Status
+[niftyreg]: https://cmiclab.cs.ucl.ac.uk/mmodat/niftyreg/wikis/home
+[fsl]: https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/
+[simpleitk]: http://www.simpleitk.org/
