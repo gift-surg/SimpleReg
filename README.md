@@ -16,7 +16,7 @@ If you have any questions or comments (or find bugs), please drop me an email to
 ## Installation
 
 Install required external tools and libraries by following the
-* [installation instructions][simplereg-dependencies]
+* [Installation Instructions of SimpleReg Dependencies][simplereg-dependencies]
 
 Clone the SimpleReg repository by
 * `git clone git@cmiclab.cs.ucl.ac.uk:GIFT-Surg/SimpleReg.git` 
