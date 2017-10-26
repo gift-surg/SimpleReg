@@ -27,8 +27,8 @@ Install all Python-dependencies by
 Install SimpleReg by running
 * `pip install -e .`
 
-In order to run the provided unit tests, please execute
-* `python tests/run_tests.py`
+Check installation via
+* `python -m nose tests/installation_test.py`
 
 ## Licensing and Copyright
 Copyright (c) 2017, [University College London][ucl].

@@ -8,9 +8,6 @@
 # \author     Michael Ebner (michael.ebner.14@ucl.ac.uk)
 # \date       July 2017
 #
-# \see https://python-packaging.readthedocs.io/en/latest/minimal.html
-# \see https://python-packaging-user-guide.readthedocs.io/tutorials/distributing-packages/
-
 
 from setuptools import setup
 
