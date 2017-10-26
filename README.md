@@ -19,7 +19,7 @@ Install required external tools and libraries by following the
 * [Installation Instructions of SimpleReg Dependencies][simplereg-dependencies]
 
 Clone the SimpleReg repository by
-* `git clone git@cmiclab.cs.ucl.ac.uk:GIFT-Surg/SimpleReg.git` 
+* `git clone git@github.com:gift-surg/SimpleReg.git` 
 
 Install all Python-dependencies by 
 * `pip install -r requirements.txt`
@@ -50,12 +50,12 @@ This work is partially funded by the UCL [Engineering and Physical Sciences Rese
 [wellcometrust]: http://www.wellcome.ac.uk
 [mssociety]: https://www.mssociety.org.uk/
 [nihr]: http://www.nihr.ac.uk/research
-[itkniftymic]: https://cmiclab.cs.ucl.ac.uk/GIFT-Surg/ITK_NiftyMIC/wikis/home
-[niftymic-install]: https://cmiclab.cs.ucl.ac.uk/GIFT-Surg/NiftyMIC/wikis/niftymic-installation
-[nsol]: https://cmiclab.cs.ucl.ac.uk/GIFT-Surg/NSoL
-[simplereg]: https://cmiclab.cs.ucl.ac.uk/GIFT-Surg/SimpleReg
-[simplereg-dependencies]: https://cmiclab.cs.ucl.ac.uk/GIFT-Surg/SimpleReg/wikis/simplereg-dependencies
-[pysitk]: https://cmiclab.cs.ucl.ac.uk/GIFT-Surg/PySiTK
+[itkniftymic]: https://github.com/gift-surg/ITK_NiftyMIC/wikis/home
+[niftymic-install]: https://github.com/gift-surg/NiftyMIC/wikis/niftymic-installation
+[nsol]: https://github.com/gift-surg/NSoL
+[simplereg]: https://github.com/gift-surg/SimpleReg
+[simplereg-dependencies]: https://github.com/gift-surg/SimpleReg/wikis/simplereg-dependencies
+[pysitk]: https://github.com/gift-surg/PySiTK
 [wrapitk]: https://itk.org/Wiki/ITK/WrapITK_Status
 [niftyreg]: https://cmiclab.cs.ucl.ac.uk/mmodat/niftyreg/wikis/home
 [fsl]: https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/

@@ -1,4 +1,4 @@
 numpy>=1.13.1
 SimpleITK>=1.0.1
 nipype>=0.13.1
--e git+https://cmiclab.cs.ucl.ac.uk/gift-surg/PySiTK.git#egg=PySiTK
+-e git+https://github.com/gift-surg/PySiTK.git#egg=PySiTK
