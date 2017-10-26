@@ -1,6 +1,6 @@
 # SimpleReg 
 
-SimpleReg is a Python-based open source toolkit that provides the interface to various registration tools including
+SimpleReg is a Python-based open-source toolkit that provides the interface to various registration tools including
 
 * [SimpleITK][simpleitk]
 * [NiftyReg][niftyreg]
