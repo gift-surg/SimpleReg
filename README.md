@@ -49,10 +49,10 @@ This framework is made available as free open-source software under the [BSD-3-C
 [nihr]: http://www.nihr.ac.uk/research
 [itkniftymic]: https://cmiclab.cs.ucl.ac.uk/GIFT-Surg/ITK_NiftyMIC/wikis/home
 [niftymic-install]: https://cmiclab.cs.ucl.ac.uk/GIFT-Surg/NiftyMIC/wikis/niftymic-installation
-[nsol]: https://cmiclab.cs.ucl.ac.uk/mebner/NSoL
-[simplereg]: https://cmiclab.cs.ucl.ac.uk/mebner/SimpleReg
+[nsol]: https://cmiclab.cs.ucl.ac.uk/GIFT-Surg/NSoL
+[simplereg]: https://cmiclab.cs.ucl.ac.uk/GIFT-Surg/SimpleReg
 [simplereg-dependencies]: https://cmiclab.cs.ucl.ac.uk/GIFT-Surg/SimpleReg/wikis/simplereg-dependencies
-[pysitk]: https://cmiclab.cs.ucl.ac.uk/mebner/PySiTK
+[pysitk]: https://cmiclab.cs.ucl.ac.uk/GIFT-Surg/PySiTK
 [wrapitk]: https://itk.org/Wiki/ITK/WrapITK_Status
 [niftyreg]: https://cmiclab.cs.ucl.ac.uk/mmodat/niftyreg/wikis/home
 [fsl]: https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/
