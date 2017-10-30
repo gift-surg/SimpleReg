@@ -11,7 +11,7 @@ Please not that currently **only Python 2** is supported.
 
 The algorithm and software were developed by [Michael Ebner][mebner] at the [Translational Imaging Group][tig] in the [Centre for Medical Image Computing][cmic] at [University College London (UCL)][ucl].
 
-If you have any questions or comments (or find bugs), please drop me an email to `michael.ebner.14@ucl.ac.uk`.
+If you have any questions or comments, please drop me an email to `michael.ebner.14@ucl.ac.uk`.
 
 ## Installation
 
