@@ -60,14 +60,16 @@ class NiftyReg(WrapperRegistration):
         # Create and delete all possibly existing files in the directory
         ph.create_directory(self._dir_tmp, delete_files=True)
 
-        sitk.WriteImage(self._fixed_sitk, self._fixed_str)
-        sitk.WriteImage(self._moving_sitk, self._moving_str)
+        sitkh.write_nifti_image_sitk(self._fixed_sitk, self._fixed_str)
+        sitkh.write_nifti_image_sitk(self._moving_sitk, self._moving_str)
 
         if self._fixed_sitk_mask is not None:
-            sitk.WriteImage(self._fixed_sitk_mask, self._fixed_mask_str)
+            sitkh.write_nifti_image_sitk(
+                self._fixed_sitk_mask, self._fixed_mask_str)
 
         if self._moving_sitk_mask is not None:
-            sitk.WriteImage(self._moving_sitk_mask, self._moving_mask_str)
+            sitkh.write_nifti_image_sitk(
+                self._moving_sitk_mask, self._moving_mask_str)
 
 
 class RegAladin(NiftyReg):
@@ -279,11 +281,11 @@ class RegF3D(NiftyReg):
         # deleted)
         # Create and delete all possibly existing files in the directory
         # ph.create_directory(self._dir_tmp, delete_files=True)
-        # sitk.WriteImage(self.get_registration_transform_sitk(),
+        # sitkh.write_nifti_image_sitk(self.get_registration_transform_sitk(),
         #                 self._registration_control_point_grid_str)
 
-        sitk.WriteImage(fixed_sitk, self._fixed_str)
-        sitk.WriteImage(moving_sitk, self._moving_str)
+        sitkh.write_nifti_image_sitk(fixed_sitk, self._fixed_str)
+        sitkh.write_nifti_image_sitk(moving_sitk, self._moving_str)
 
         nreg = nipype.interfaces.niftyreg.RegResample()
         nreg.inputs.ref_file = self._fixed_str
@@ -311,8 +313,8 @@ class RegF3D(NiftyReg):
     #     filename_2 = os.path.join(self._dir_tmp, "filename_2.nii.gz")
     #     filename_3 = os.path.join(self._dir_tmp, "filename_3.nii.gz")
 
-    #     sitk.WriteImage(input_def_field_sitk, filename_1)
-    #     sitk.WriteImage(input_moving_sitk, filename_2)
+    #     sitkh.write_nifti_image_sitk(input_def_field_sitk, filename_1)
+    #     sitkh.write_nifti_image_sitk(input_moving_sitk, filename_2)
 
     #     cmd = REG_TRANSFORM_EXE + " -invNrr" + endl
     #     cmd += filename_1 + endl
