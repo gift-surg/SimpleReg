@@ -28,7 +28,9 @@ class NiftyReg(WrapperRegistration):
                  moving_sitk_mask,
                  options,
                  omp,
-                 subfolder):
+                 subfolder,
+                 verbose,
+                 ):
 
         WrapperRegistration.__init__(self,
                                      fixed_sitk=fixed_sitk,
@@ -36,6 +38,7 @@ class NiftyReg(WrapperRegistration):
                                      fixed_sitk_mask=fixed_sitk_mask,
                                      moving_sitk_mask=moving_sitk_mask,
                                      options=options,
+                                     verbose=verbose,
                                      )
 
         # Subfolder within DIR_TMP where results will be stored temporarily
@@ -82,6 +85,7 @@ class RegAladin(NiftyReg):
                  options="",
                  subfolder="RegAladin",
                  omp=OMP,
+                 verbose=False,
                  ):
 
         NiftyReg.__init__(self,
@@ -92,12 +96,13 @@ class RegAladin(NiftyReg):
                           options=options,
                           subfolder=subfolder,
                           omp=omp,
+                          verbose=verbose,
                           )
 
         self._registration_transform_str = os.path.join(
             self._dir_tmp, "registration_transform.txt")
 
-    def _run(self, debug=0):
+    def _run(self):
 
         super(RegAladin, self)._run()
 
@@ -116,8 +121,8 @@ class RegAladin(NiftyReg):
             nreg.inputs.fmask_file = self._moving_mask_str
 
         # Execute registration
-        if debug:
-            print(nreg.cmdline)
+        if self._verbose:
+            ph.print_execution(nreg.cmdline)
         nreg.run()
 
         # Read warped image
@@ -192,6 +197,7 @@ class RegF3D(NiftyReg):
                  options="",
                  subfolder="RegF3D",
                  omp=OMP,
+                 verbose=False,
                  ):
 
         NiftyReg.__init__(self,
@@ -202,12 +208,13 @@ class RegF3D(NiftyReg):
                           options=options,
                           subfolder=subfolder,
                           omp=omp,
+                          verbose=verbose,
                           )
 
         self._registration_control_point_grid_str = os.path.join(
             self._dir_tmp, "registration_cpp.nii.gz")
 
-    def _run(self, debug=0):
+    def _run(self):
 
         super(RegF3D, self)._run()
 
@@ -226,8 +233,8 @@ class RegF3D(NiftyReg):
             nreg.inputs.fmask_file = self._moving_mask_str
 
         # Execute registration
-        if debug:
-            print(nreg.cmdline)
+        if self._verbose:
+            ph.print_execution(nreg.cmdline)
         nreg.run()
 
         # Read warped image
@@ -249,7 +256,7 @@ class RegF3D(NiftyReg):
     def _get_warped_moving_sitk(self):
         return self._warped_moving_sitk
 
-    def _get_warped_moving_sitk_mask(self, debug=0):
+    def _get_warped_moving_sitk_mask(self):
 
         warped_moving_sitk_mask = self.get_deformed_image_sitk(
             fixed_sitk=self._fixed_sitk,
@@ -267,12 +274,11 @@ class RegF3D(NiftyReg):
     # \param      fixed_sitk           Fixed image as sitk.Image
     # \param      moving_sitk          Moving image as sitk.Image
     # \param      interpolation_order  Interpolation order, integer
-    # \param      debug                The debug
     #
     # \return     The deformed image sitk.
     #
     def get_deformed_image_sitk(self, fixed_sitk, moving_sitk,
-                                interpolation_order, debug=1):
+                                interpolation_order):
 
         # REMARK:
         # Not possible to write registration transform that way since
@@ -296,8 +302,8 @@ class RegF3D(NiftyReg):
         nreg.inputs.args = "-inter " + str(interpolation_order)
 
         # Execute registration
-        if debug:
-            print(nreg.cmdline)
+        if self._verbose:
+            ph.print_execution(nreg.cmdline)
         nreg.run()
 
         return sitk.ReadImage(self._warped_moving_str,

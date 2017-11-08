@@ -37,6 +37,7 @@ class WrapperRegistration(SimpleItkRegistrationBase):
                  fixed_sitk_mask,
                  moving_sitk_mask,
                  options,
+                 verbose,
                  ):
 
         SimpleItkRegistrationBase.__init__(self,
@@ -46,6 +47,7 @@ class WrapperRegistration(SimpleItkRegistrationBase):
                                            moving_sitk_mask=moving_sitk_mask,
                                            )
         self._options = options
+        self._verbose = verbose
 
     ##
     # Sets the options of the registration method.
@@ -67,3 +69,24 @@ class WrapperRegistration(SimpleItkRegistrationBase):
     #
     def get_options(self):
         return self._options
+
+    ##
+    # Sets the verbose.
+    # \date       2017-11-08 18:26:59+0000
+    #
+    # \param      self    The object
+    # \param      vebose  Turn on/off verbose. Boolean.
+    #
+    def set_verbose(self, vebose):
+        self._verbose = verbose
+
+    ##
+    # Gets the verbose.
+    # \date       2017-11-08 18:27:16+0000
+    #
+    # \param      self  The object
+    #
+    # \return     Verbose as boolean
+    #
+    def get_verbose(self):
+        return self._verbose

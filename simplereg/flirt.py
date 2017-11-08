@@ -29,7 +29,8 @@ class FLIRT(WrapperRegistration):
                  moving_sitk_mask=None,
                  options="",
                  subfolder="FLIRT",
-                 verbose=0):
+                 verbose=False,
+                 ):
 
         WrapperRegistration.__init__(self,
                                      fixed_sitk=fixed_sitk,
@@ -37,9 +38,8 @@ class FLIRT(WrapperRegistration):
                                      fixed_sitk_mask=fixed_sitk_mask,
                                      moving_sitk_mask=moving_sitk_mask,
                                      options=options,
+                                     verbose=verbose,
                                      )
-        self._verbose = verbose
-
         # Subfolder within DIR_TMP where results will be stored temporarily
         self._dir_tmp = os.path.join(DIR_TMP, subfolder)
 
@@ -103,7 +103,6 @@ class FLIRT(WrapperRegistration):
     # \date       2017-08-08 18:35:40+0100
     #
     # \param      self     The object
-    # \param      verbose  The verbose
     #
     # \return     Registration transform as sitk object
     #
