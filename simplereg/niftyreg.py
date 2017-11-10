@@ -28,7 +28,9 @@ class NiftyReg(WrapperRegistration):
                  moving_sitk_mask,
                  options,
                  omp,
-                 subfolder):
+                 subfolder,
+                 verbose,
+                 ):
 
         WrapperRegistration.__init__(self,
                                      fixed_sitk=fixed_sitk,
@@ -36,6 +38,7 @@ class NiftyReg(WrapperRegistration):
                                      fixed_sitk_mask=fixed_sitk_mask,
                                      moving_sitk_mask=moving_sitk_mask,
                                      options=options,
+                                     verbose=verbose,
                                      )
 
         # Subfolder within DIR_TMP where results will be stored temporarily
@@ -60,14 +63,16 @@ class NiftyReg(WrapperRegistration):
         # Create and delete all possibly existing files in the directory
         ph.create_directory(self._dir_tmp, delete_files=True)
 
-        sitk.WriteImage(self._fixed_sitk, self._fixed_str)
-        sitk.WriteImage(self._moving_sitk, self._moving_str)
+        sitkh.write_nifti_image_sitk(self._fixed_sitk, self._fixed_str)
+        sitkh.write_nifti_image_sitk(self._moving_sitk, self._moving_str)
 
         if self._fixed_sitk_mask is not None:
-            sitk.WriteImage(self._fixed_sitk_mask, self._fixed_mask_str)
+            sitkh.write_nifti_image_sitk(
+                self._fixed_sitk_mask, self._fixed_mask_str)
 
         if self._moving_sitk_mask is not None:
-            sitk.WriteImage(self._moving_sitk_mask, self._moving_mask_str)
+            sitkh.write_nifti_image_sitk(
+                self._moving_sitk_mask, self._moving_mask_str)
 
 
 class RegAladin(NiftyReg):
@@ -80,6 +85,7 @@ class RegAladin(NiftyReg):
                  options="",
                  subfolder="RegAladin",
                  omp=OMP,
+                 verbose=False,
                  ):
 
         NiftyReg.__init__(self,
@@ -90,12 +96,13 @@ class RegAladin(NiftyReg):
                           options=options,
                           subfolder=subfolder,
                           omp=omp,
+                          verbose=verbose,
                           )
 
         self._registration_transform_str = os.path.join(
             self._dir_tmp, "registration_transform.txt")
 
-    def _run(self, debug=0):
+    def _run(self):
 
         super(RegAladin, self)._run()
 
@@ -114,8 +121,8 @@ class RegAladin(NiftyReg):
             nreg.inputs.fmask_file = self._moving_mask_str
 
         # Execute registration
-        if debug:
-            print(nreg.cmdline)
+        if self._verbose:
+            ph.print_execution(nreg.cmdline)
         nreg.run()
 
         # Read warped image
@@ -190,6 +197,7 @@ class RegF3D(NiftyReg):
                  options="",
                  subfolder="RegF3D",
                  omp=OMP,
+                 verbose=False,
                  ):
 
         NiftyReg.__init__(self,
@@ -200,12 +208,13 @@ class RegF3D(NiftyReg):
                           options=options,
                           subfolder=subfolder,
                           omp=omp,
+                          verbose=verbose,
                           )
 
         self._registration_control_point_grid_str = os.path.join(
             self._dir_tmp, "registration_cpp.nii.gz")
 
-    def _run(self, debug=0):
+    def _run(self):
 
         super(RegF3D, self)._run()
 
@@ -224,8 +233,8 @@ class RegF3D(NiftyReg):
             nreg.inputs.fmask_file = self._moving_mask_str
 
         # Execute registration
-        if debug:
-            print(nreg.cmdline)
+        if self._verbose:
+            ph.print_execution(nreg.cmdline)
         nreg.run()
 
         # Read warped image
@@ -247,7 +256,7 @@ class RegF3D(NiftyReg):
     def _get_warped_moving_sitk(self):
         return self._warped_moving_sitk
 
-    def _get_warped_moving_sitk_mask(self, debug=0):
+    def _get_warped_moving_sitk_mask(self):
 
         warped_moving_sitk_mask = self.get_deformed_image_sitk(
             fixed_sitk=self._fixed_sitk,
@@ -265,12 +274,11 @@ class RegF3D(NiftyReg):
     # \param      fixed_sitk           Fixed image as sitk.Image
     # \param      moving_sitk          Moving image as sitk.Image
     # \param      interpolation_order  Interpolation order, integer
-    # \param      debug                The debug
     #
     # \return     The deformed image sitk.
     #
     def get_deformed_image_sitk(self, fixed_sitk, moving_sitk,
-                                interpolation_order, debug=1):
+                                interpolation_order):
 
         # REMARK:
         # Not possible to write registration transform that way since
@@ -279,11 +287,11 @@ class RegF3D(NiftyReg):
         # deleted)
         # Create and delete all possibly existing files in the directory
         # ph.create_directory(self._dir_tmp, delete_files=True)
-        # sitk.WriteImage(self.get_registration_transform_sitk(),
+        # sitkh.write_nifti_image_sitk(self.get_registration_transform_sitk(),
         #                 self._registration_control_point_grid_str)
 
-        sitk.WriteImage(fixed_sitk, self._fixed_str)
-        sitk.WriteImage(moving_sitk, self._moving_str)
+        sitkh.write_nifti_image_sitk(fixed_sitk, self._fixed_str)
+        sitkh.write_nifti_image_sitk(moving_sitk, self._moving_str)
 
         nreg = nipype.interfaces.niftyreg.RegResample()
         nreg.inputs.ref_file = self._fixed_str
@@ -294,8 +302,8 @@ class RegF3D(NiftyReg):
         nreg.inputs.args = "-inter " + str(interpolation_order)
 
         # Execute registration
-        if debug:
-            print(nreg.cmdline)
+        if self._verbose:
+            ph.print_execution(nreg.cmdline)
         nreg.run()
 
         return sitk.ReadImage(self._warped_moving_str,
@@ -311,8 +319,8 @@ class RegF3D(NiftyReg):
     #     filename_2 = os.path.join(self._dir_tmp, "filename_2.nii.gz")
     #     filename_3 = os.path.join(self._dir_tmp, "filename_3.nii.gz")
 
-    #     sitk.WriteImage(input_def_field_sitk, filename_1)
-    #     sitk.WriteImage(input_moving_sitk, filename_2)
+    #     sitkh.write_nifti_image_sitk(input_def_field_sitk, filename_1)
+    #     sitkh.write_nifti_image_sitk(input_moving_sitk, filename_2)
 
     #     cmd = REG_TRANSFORM_EXE + " -invNrr" + endl
     #     cmd += filename_1 + endl

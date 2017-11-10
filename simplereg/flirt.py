@@ -28,7 +28,9 @@ class FLIRT(WrapperRegistration):
                  fixed_sitk_mask=None,
                  moving_sitk_mask=None,
                  options="",
-                 subfolder="FLIRT"):
+                 subfolder="FLIRT",
+                 verbose=False,
+                 ):
 
         WrapperRegistration.__init__(self,
                                      fixed_sitk=fixed_sitk,
@@ -36,8 +38,8 @@ class FLIRT(WrapperRegistration):
                                      fixed_sitk_mask=fixed_sitk_mask,
                                      moving_sitk_mask=moving_sitk_mask,
                                      options=options,
+                                     verbose=verbose,
                                      )
-
         # Subfolder within DIR_TMP where results will be stored temporarily
         self._dir_tmp = os.path.join(DIR_TMP, subfolder)
 
@@ -56,13 +58,13 @@ class FLIRT(WrapperRegistration):
         self._registration_transform_sitk_str = os.path.join(
             self._dir_tmp, "registration_transform_sitk.txt")
 
-    def _run(self, debug=0, endl=" \\\n"):
+    def _run(self):
 
         # Create and delete all possibly existing files in the directory
         ph.create_directory(self._dir_tmp, delete_files=True)
 
-        sitk.WriteImage(self._fixed_sitk, self._fixed_str)
-        sitk.WriteImage(self._moving_sitk, self._moving_str)
+        sitkh.write_nifti_image_sitk(self._fixed_sitk, self._fixed_str)
+        sitkh.write_nifti_image_sitk(self._moving_sitk, self._moving_str)
 
         flt = nipype.interfaces.fsl.FLIRT()
         flt.inputs.in_file = self._moving_str
@@ -72,26 +74,27 @@ class FLIRT(WrapperRegistration):
         flt.inputs.output_type = "NIFTI_GZ"
 
         if self._fixed_sitk_mask is not None:
-            sitk.WriteImage(self._fixed_sitk_mask, self._fixed_mask_str)
+            sitkh.write_nifti_image_sitk(
+                self._fixed_sitk_mask, self._fixed_mask_str)
             flt.inputs.ref_weight = self._fixed_mask_str
 
         if self._moving_sitk_mask is not None:
-            sitk.WriteImage(self._moving_sitk_mask, self._moving_mask_str)
+            sitkh.write_nifti_image_sitk(
+                self._moving_sitk_mask, self._moving_mask_str)
             flt.inputs.in_weight = self._moving_mask_str
 
         flt.inputs.args = self._options
 
         # Execute registration
-        if debug:
-            print(flt.cmdline)
+        if self._verbose:
+            ph.print_execution(flt.cmdline)
         flt.run()
 
         # Read warped image
         self._warped_moving_sitk = sitk.ReadImage(self._warped_moving_str)
 
         # Convert to sitk affine transform
-        self._registration_transform_sitk = self._convert_to_sitk_transform(
-            verbose=debug, endl=endl)
+        self._registration_transform_sitk = self._convert_to_sitk_transform()
 
     ##
     # Convert FSL to ITK transform and return it as sitk object
@@ -100,12 +103,10 @@ class FLIRT(WrapperRegistration):
     # \date       2017-08-08 18:35:40+0100
     #
     # \param      self     The object
-    # \param      verbose  The verbose
-    # \param      endl     The endl
     #
     # \return     Registration transform as sitk object
     #
-    def _convert_to_sitk_transform(self, verbose, endl):
+    def _convert_to_sitk_transform(self):
 
         c3d = nipype.interfaces.c3.C3dAffineTool()
         c3d.inputs.reference_file = self._fixed_str
@@ -115,8 +116,8 @@ class FLIRT(WrapperRegistration):
         c3d.inputs.itk_transform = self._registration_transform_sitk_str
 
         # Execute conversion
-        if verbose:
-            print(c3d.cmdline)
+        if self._verbose:
+            ph.print_execution(c3d.cmdline)
         c3d.run()
 
         # Read transform and convert to affine registration
