@@ -52,7 +52,7 @@ before_script:
     - pip install -r requirements.txt
 
     # run installation
-    - pip install -e .
+    - pip install .
 
 after_script:
     # delete tmp-directory
