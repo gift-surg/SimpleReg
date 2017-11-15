@@ -42,14 +42,12 @@ before_script:
 
     - cd $cwd_dir
     # If cmiclab is used:
-    # add CI_JOB_TOKEN for cloning dependent repositories in requirements.txt
+    # add CI_JOB_TOKEN for cloning dependent repositories
     # (https://docs.gitlab.com/ee/user/project/new_ci_build_permissions_model.html#dependent-repositories)
     - >
       (if [ ${CMICLAB} == 1 ];
-      then sed -i -- "s#github.com/gift-surg#gitlab-ci-token:${CI_JOB_TOKEN}@cmiclab.cs.ucl.ac.uk/GIFT-Surg#g" requirements.txt;
+      then sed -i -- "s#github.com/gift-surg#gitlab-ci-token:${CI_JOB_TOKEN}@cmiclab.cs.ucl.ac.uk/GIFT-Surg#g" setup.py;
       fi);
-    # install requirements
-    - pip install -r requirements.txt
 
     # run installation
     - pip install -e .
