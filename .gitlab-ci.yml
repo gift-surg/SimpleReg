@@ -1,7 +1,7 @@
 # -----------------------------------Set Up------------------------------------
 variables:
     PY_VERSION: 2
-    CMICLAB: 1
+    CMICLAB: 0
     TMPDIR: ./tmp
     VENV: pysitk-test-py${PY_VERSION}
     ITK_DIR: /mnt/shared/mebner/environment/ITK/ITK_NiftyMIC-python${PY_VERSION}-build
