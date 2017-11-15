@@ -21,6 +21,9 @@ Install required external tools and libraries by following the
 Clone the SimpleReg repository by
 * `git clone git@github.com:gift-surg/SimpleReg.git` 
 
+Install all Python-dependencies by 
+* `pip install -r requirements.txt`
+
 Install SimpleReg by running
 * `pip install -e .`
 

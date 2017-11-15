@@ -29,9 +29,6 @@ setup(name='SimpleReg',
           "SimpleITK>=1.0.1",
           "nipype>=0.13.1",
       ],
-      dependency_links=[
-          "git+https://github.com/gift-surg/PySiTK.git@v0.1#egg=PySiTK-0.1"
-      ],
       zip_safe=False,
       keywords='development registration',
       classifiers=[
