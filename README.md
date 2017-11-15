@@ -25,7 +25,7 @@ Install all Python-dependencies by
 * `pip install -r requirements.txt`
 
 Install SimpleReg by running
-* `pip install -e .`
+* `pip install .`
 
 Check installation via
 * `python -m nose tests/installation_test.py`
