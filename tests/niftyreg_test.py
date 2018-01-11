@@ -26,9 +26,13 @@ class NiftyRegTest(unittest.TestCase):
         # ----------------------------------2D---------------------------------
         self.fixed_sitk_2D = sitk.ReadImage(
             os.path.join(DIR_TEST, "2D_Brain_Target.png"))
+        self.fixed_sitk_mask_2D = sitk.ReadImage(
+            os.path.join(DIR_TEST, "2D_Brain_Target_mask.png"))
 
         self.moving_sitk_2D = sitk.ReadImage(
             os.path.join(DIR_TEST, "2D_Brain_Source.png"))
+        self.moving_sitk_mask_2D = sitk.ReadImage(
+            os.path.join(DIR_TEST, "2D_Brain_Source_mask.png"))
 
         # ---------------------------------3D----------------------------------
         self.fixed_sitk_3D = sitk.ReadImage(
@@ -139,16 +143,21 @@ class NiftyRegTest(unittest.TestCase):
 
         self.fixed_sitk = self.fixed_sitk_2D
         self.moving_sitk = self.moving_sitk_2D
+        self.fixed_sitk_mask = self.fixed_sitk_mask_2D
+        self.moving_sitk_mask = self.moving_sitk_mask_2D
         self.show_fig = 0
 
         # ------------------------------RegAladin---------------------------
         self.registration_method = simplereg.niftyreg.RegF3D(
             fixed_sitk=self.fixed_sitk,
             moving_sitk=self.moving_sitk,
+            fixed_sitk_mask=self.fixed_sitk_mask,
+            moving_sitk_mask=self.moving_sitk_mask,
             options="-voff",
         )
 
         self.registration_method.run()
+        self.registration_method.get_warped_moving_sitk_mask()
         self.tearDown_reg_f3d()
 
     def test_registration_reg_f3d_3D(self):
