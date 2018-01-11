@@ -297,7 +297,7 @@ class RegF3D(NiftyReg):
         nreg.inputs.ref_file = self._fixed_str
         nreg.inputs.flo_file = self._moving_str
         nreg.inputs.trans_file = self._registration_control_point_grid_str
-        nreg.inputs.res_file = self._warped_moving_str
+        nreg.inputs.out_file = self._warped_moving_str
         nreg.inputs.omp_core_val = self._omp
         nreg.inputs.args = "-inter " + str(interpolation_order)
 
