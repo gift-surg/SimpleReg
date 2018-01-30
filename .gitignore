@@ -2,4 +2,6 @@
 *.egg-info
 html
 latex
+.idea
+*.wiki
 
