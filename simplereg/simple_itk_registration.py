@@ -128,6 +128,13 @@ class SimpleItkRegistration(SimpleItkRegistrationBase):
                 eval("sitk.CenteredTransformInitializerFilter.%s" % (
                     initializer_type))
             )
+        if self._metric_params is not None:
+            if type(self._metric_params) is not dict:
+                raise IOError("metric_params must be of type dict")
+            else:
+                if not self._metric_params:
+                    raise IOError("metric_params cannot be an empty dict")
+
         registration_method.SetInitialTransform(
             initial_transform, inPlace=True)
 
@@ -281,6 +288,9 @@ class SimpleItkRegistration(SimpleItkRegistrationBase):
         ph.print_info("Interpolator: %s"
                       % (self._interpolator))
         ph.print_info("Metric: %s" % (self._metric))
+        if self._metric_params is not None:
+            for k, v in self._metric_params.iteritems():
+                ph.print_info("Metric-%s: %s" % (str(k), str(v)))
         ph.print_info("CenteredTransformInitializer: %s"
                       % (self._initializer_type))
         ph.print_info("Optimizer: %s"
