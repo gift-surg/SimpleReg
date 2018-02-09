@@ -126,7 +126,8 @@ class RegAladin(NiftyReg):
         nreg.run()
 
         # Read warped image
-        self._warped_moving_sitk = sitk.ReadImage(self._warped_moving_str)
+        self._warped_moving_sitk = sitkh.read_nifti_image_sitk(
+            self._warped_moving_str, sitk.sitkFloat64)
 
         # Convert to sitk affine transform
         self._registration_transform_sitk = self._convert_to_sitk_transform()
@@ -238,10 +239,11 @@ class RegF3D(NiftyReg):
         nreg.run()
 
         # Read warped image
-        self._warped_moving_sitk = sitk.ReadImage(self._warped_moving_str)
+        self._warped_moving_sitk = sitkh.read_nifti_image_sitk(
+            self._warped_moving_str)
 
         # Has not been used. Thus, not tested!
-        self._registration_transform_sitk = sitk.ReadImage(
+        self._registration_transform_sitk = sitkh.read_nifti_image_sitk(
             self._registration_control_point_grid_str)
 
     def _get_transformed_fixed_sitk(self):
@@ -306,8 +308,8 @@ class RegF3D(NiftyReg):
             ph.print_execution(nreg.cmdline)
         nreg.run()
 
-        return sitk.ReadImage(self._warped_moving_str,
-                              moving_sitk.GetPixelIDValue())
+        return sitkh.read_nifti_image_sitk(self._warped_moving_str,
+                                           moving_sitk.GetPixelIDValue())
 
     # def _get_inverted_transform(self,
     #                             input_def_field_sitk,

@@ -91,7 +91,8 @@ class FLIRT(WrapperRegistration):
         flt.run()
 
         # Read warped image
-        self._warped_moving_sitk = sitk.ReadImage(self._warped_moving_str)
+        self._warped_moving_sitk = sitkh.read_nifti_image_sitk(
+            self._warped_moving_str)
 
         # Convert to sitk affine transform
         self._registration_transform_sitk = self._convert_to_sitk_transform()
