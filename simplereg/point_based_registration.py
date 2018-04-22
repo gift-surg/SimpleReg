@@ -1,6 +1,7 @@
 ##
 # \file point_based_registration.py
-# \brief      Class to perform point-based rigid registration in 3D
+# \brief      Class to perform rigid registration based on least-squares
+#             fitting of two 3D point sets
 #
 # \author     Michael Ebner (michael.ebner.14@ucl.ac.uk)
 # \date       April 2017
@@ -15,7 +16,7 @@ import pysitk.python_helper as ph
 
 ##
 # Abstract class for point-based registration to find rotation matrix R and
-# translation t that minimize || moving - (R.fixed - t) ||
+# translation t that minimize || moving - (R.fixed - t) ||_2^2
 # \date       2018-04-21 19:52:08-0600
 #
 class PointBasedRegistration(object):
@@ -95,7 +96,7 @@ class PointBasedRegistration(object):
 
     ##
     # Gets the registration outcome, i.e. the rotation matrix R and translation
-    # t that minimize  || moving - (R.fixed - t) ||
+    # t that minimize  || moving - (R.fixed - t) ||_2^2
     # \date       2018-04-21 23:41:30-0600
     #
     # \param      self  The object
@@ -206,6 +207,59 @@ class BeslMcKayPointBasedRegistration(PointBasedRegistration):
         R[2, 1] = 2 * (q[2] * q[3] + q[0] * q[1])
 
         # Compute optimal translation vector
+        t = mu_moving_nda - R.dot(mu_fixed_nda)
+
+        self._rotation_nda = R
+        self._translation_nda = t
+
+
+##
+# Implementation of SVD-based algorithm for point-based rigid registration as
+# described in [Arun et al., 1987].
+#
+# Arun, K. S., Huang, T. S., & Blostein, S. D. (1987). Least-Squares Fitting of
+# Two 3-D Point Sets. IEEE Transactions on Pattern Analysis and Machine
+# Intelligence, PAMI-9(5), 698-700.
+# \date       2018-04-21 23:52:49-0600
+#
+class ArunHuangBlosteinPointBasedRegistration(PointBasedRegistration):
+
+    def __init__(self, fixed_points_nda, moving_points_nda, verbose=0):
+        PointBasedRegistration.__init__(
+            self,
+            fixed_points_nda=fixed_points_nda,
+            moving_points_nda=moving_points_nda,
+            verbose=verbose,
+        )
+
+    def _run(self):
+
+        # Compute centroids
+        mu_fixed_nda = np.mean(self._fixed_points_nda, axis=0)
+        mu_moving_nda = np.mean(self._moving_points_nda, axis=0)
+
+        # Obtain centered point sets:
+        fixed_nda = self._fixed_points_nda - mu_fixed_nda
+        moving_nda = self._moving_points_nda - mu_moving_nda
+
+        # 3 x 3 Matrix from sum of outer product of points
+        H = np.einsum('ij,ik->jk', fixed_nda, moving_nda)
+
+        # Compute SVD
+        U, D, V_transpose = np.linalg.svd(H)
+
+        # Calculate X
+        X = V_transpose.transpose().dot(U.transpose())
+
+        # Compute rotation matrix based on determinant
+        det = np.linalg.det(X)
+        if np.abs(det - 1.) < 1e-6:
+            R = X
+        else:
+
+            raise RuntimeError("Algorithm has failed")
+
+        # Compute translation
         t = mu_moving_nda - R.dot(mu_fixed_nda)
 
         self._rotation_nda = R
