@@ -242,21 +242,25 @@ class ArunHuangBlosteinPointBasedRegistration(PointBasedRegistration):
         fixed_nda = self._fixed_points_nda - mu_fixed_nda
         moving_nda = self._moving_points_nda - mu_moving_nda
 
-        # 3 x 3 Matrix from sum of outer product of points
+        # Compute 3 x 3 matrix from sum of outer product of points
         H = np.einsum('ij,ik->jk', fixed_nda, moving_nda)
 
         # Compute SVD
         U, D, V_transpose = np.linalg.svd(H)
 
-        # Calculate X
+        # Compute orthogonal matrix X
         X = V_transpose.transpose().dot(U.transpose())
 
         # Compute rotation matrix based on determinant
         det = np.linalg.det(X)
+
+        # det = 1 (rotation)
         if np.abs(det - 1.) < 1e-6:
             R = X
-        else:
 
+        # det = -1 (reflection)
+        # additional case handling possible, see [Arun et. al, Sect. IV and V]
+        else:
             raise RuntimeError("Algorithm has failed")
 
         # Compute translation
