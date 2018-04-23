@@ -146,6 +146,13 @@ class PointBasedRegistration(object):
     def _run(self):
         pass
 
+    def _print_registration_estimate(self):
+        ph.print_info("Rotation matrix:")
+        print(self._rotation_nda)
+
+        ph.print_info("Translation vector:")
+        print(self._translation_nda)
+
 
 ##
 # Implementation of quaternion-based algorithm for point-based rigid
@@ -212,6 +219,9 @@ class BeslMcKayPointBasedRegistration(PointBasedRegistration):
         self._rotation_nda = R
         self._translation_nda = t
 
+        if self._verbose:
+            self._print_registration_estimate()
+
 
 ##
 # Implementation of SVD-based algorithm for point-based rigid registration as
@@ -268,3 +278,6 @@ class ArunHuangBlosteinPointBasedRegistration(PointBasedRegistration):
 
         self._rotation_nda = R
         self._translation_nda = t
+
+        if self._verbose:
+            self._print_registration_estimate()
