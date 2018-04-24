@@ -257,21 +257,35 @@ class ArunHuangBlosteinPointBasedRegistration(PointBasedRegistration):
 
         # Compute SVD
         U, D, V_transpose = np.linalg.svd(H)
+        V = V_transpose.transpose()
 
         # Compute orthogonal matrix X
-        X = V_transpose.transpose().dot(U.transpose())
+        X = V.dot(U.transpose())
 
-        # Compute rotation matrix based on determinant
+        # Compute rotation matrix based on determinant in {-1, 1}
         det = np.linalg.det(X)
 
         # det = 1 (rotation)
-        if np.abs(det - 1.) < 1e-6:
+        if det > 0:
             R = X
 
-        # det = -1 (reflection)
-        # additional case handling possible, see [Arun et. al, Sect. IV and V]
+        # det = -1 (reflection). Error handling [Arun et. al, Sect. IV and V]
         else:
-            raise RuntimeError("Algorithm has failed")
+            ph.print_info(
+                "Algorithm has encountered reflection. Try to fix it ... ")
+            eigval, eigvec = np.linalg.eig(H)
+
+            i_zeros = 0
+            for i in range(eigval.size):
+                if eigval[i] < 0:
+                    V[:, i] *= -1
+                    i_zeros += 1
+            if i_zeros == 0:
+                raise RuntimeError("No negative eigenvalue. Algorithm fails.")
+            else:
+                R = V.dot(U.transpose())
+                if np.linalg.det(R) < 0:
+                    raise RuntimeError("Still a reflection. Algorithm fails.")
 
         # Compute translation
         t = mu_moving_nda - R.dot(mu_fixed_nda)
