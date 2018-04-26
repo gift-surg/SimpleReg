@@ -42,3 +42,29 @@ def fiducial_registration_error(reference_nda, estimate_nda):
     FRE = np.square(np.sum(np.square(reference_nda - estimate_nda)) / N)
 
     return FRE
+
+
+def convert_regaladin_to_sitk_transform(path_to_regaladin):
+
+    matrix = np.loadtxt(path_to_regaladin)
+
+    nda_2D = np.array([0, 0, 1, 0], [0, 0, 0 1])
+    if np.sum(np.abs(matrix[2:, 0:] - nda_2D)) < 1e-6:
+        dim = 2
+    else:
+        dim = 3
+
+    A = matrix[0:dim, 0:dim]
+    t = matrix[0:dim, -1]
+
+    # Convert to SimpleITK physical coordinate system
+    R = np.eye(dim)
+    R[0, 0] = -1
+    R[1, 1] = -1
+    A = R.dot(A).dot(R)
+    t = R.dot(t)
+
+    transform_sitk = sitk.AffineTransform(A.flatten(), t)
+
+    return transform_sitk
+
