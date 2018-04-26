@@ -6,6 +6,9 @@
 #
 
 import numpy as np
+import SimpleITK as sitk
+
+import pysitk.python_helper as ph
 
 
 ##
@@ -43,17 +46,36 @@ def fiducial_registration_error(reference_nda, estimate_nda):
 
     return FRE
 
+##
+# Convert a NiftyReg-RegAladin affine transformation matrix into a SimpleITK
+# transform
+# \date       2018-04-25 21:40:05-0600
+#
+# \param      matrix  affine matrix as np.ndarray
+#
+# \return     Affine transformation of type sitk.AffineTransform
+#
 
-def convert_regaladin_to_sitk_transform(path_to_regaladin):
 
-    matrix = np.loadtxt(path_to_regaladin)
+def convert_regaladin_to_sitk_transform(matrix):
 
-    nda_2D = np.array([0, 0, 1, 0], [0, 0, 0 1])
+    if not isinstance(matrix, np.ndarray):
+        raise IOError("matrix must be a np.ndarray")
+
+    if matrix.shape != (4, 4):
+        raise IOError("matrix array must be of shape (4, 4)")
+
+    if np.sum(np.abs(matrix[-1, :] - np.array([0, 0, 0, 1]))):
+        raise IOError("last row of matrix must be [0, 0, 0, 1]")
+
+    # retrieve dimension
+    nda_2D = np.array([[0, 0, 1, 0], [0, 0, 0, 1]])
     if np.sum(np.abs(matrix[2:, 0:] - nda_2D)) < 1e-6:
         dim = 2
     else:
         dim = 3
 
+    # retrieve (dim x dim) matrix and translation
     A = matrix[0:dim, 0:dim]
     t = matrix[0:dim, -1]
 
@@ -64,7 +86,38 @@ def convert_regaladin_to_sitk_transform(path_to_regaladin):
     A = R.dot(A).dot(R)
     t = R.dot(t)
 
+    # Convert to affine transform
+    # (Note, it is not possible to extract a EulerxDTransform even for
+    # rigid reg_aladin trafos: 'Error: Attempt to set a Non-Orthogonal matrix')
     transform_sitk = sitk.AffineTransform(A.flatten(), t)
 
     return transform_sitk
 
+
+##
+# Convert SimpleITK Transform into a NiftyReg-RegAladin affine matrix
+# \date       2018-04-25 21:41:08-0600
+#
+# \param      transform_sitk  transformation as sitk.Transform
+#
+# \return     NiftyReg-RegAladin transformation as (4 x 4)-np.array
+#
+def convert_sitk_to_regaladin_transform(transform_sitk):
+
+    if not isinstance(transform_sitk, sitk.Transform):
+        raise IOError("Input must be a sitk.Transform")
+
+    dim = transform_sitk.GetDimension()
+    A_sitk = np.array(transform_sitk.GetMatrix()).reshape(dim, dim)
+    t_sitk = np.array(transform_sitk.GetTranslation())
+
+    # Convert to physical coordinate system
+    A = np.eye(4)
+    R = np.eye(dim)
+
+    R[0, 0] = -1
+    R[1, 1] = -1
+    A[0:dim, 0:dim] = R.dot(A_sitk).dot(R)
+    A[0:dim, 3] = R.dot(t_sitk)
+
+    return A
