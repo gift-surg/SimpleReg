@@ -7,10 +7,10 @@
 # Import libraries
 import os
 import sys
-import SimpleITK as sitk
+import six
 import numpy as np
+import SimpleITK as sitk
 
-# Import modules from src-folder
 import pysitk.python_helper as ph
 import pysitk.simple_itk_helper as sitkh
 
@@ -289,7 +289,7 @@ class SimpleItkRegistration(SimpleItkRegistrationBase):
                       % (self._interpolator))
         ph.print_info("Metric: %s" % (self._metric))
         if self._metric_params is not None:
-            for k, v in self._metric_params.iteritems():
+            for k, v in six.iteritems(self._metric_params):
                 ph.print_info("Metric-%s: %s" % (str(k), str(v)))
         ph.print_info("CenteredTransformInitializer: %s"
                       % (self._initializer_type))
