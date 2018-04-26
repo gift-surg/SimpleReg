@@ -18,19 +18,19 @@ def main():
 
     # Read input
     parser = argparse.ArgumentParser(
-        description="Invert SipmleITK transformation.",
+        description="Invert SimpleITK transformation.",
         prog=None,
         epilog="Author: Michael Ebner (michael.ebner.14@ucl.ac.uk)",
     )
     parser.add_argument(
         "--filename",
-        help="Path to (SimpleITK) transformation",
+        help="Path to (SimpleITK) transformation (.txt)",
         type=str,
         required=1,
     )
     parser.add_argument(
         "--output",
-        help="Path to output transformation",
+        help="Path to output transformation (.txt)",
         type=str,
         required=1,
     )

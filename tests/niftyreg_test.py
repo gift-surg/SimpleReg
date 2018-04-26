@@ -12,7 +12,7 @@ import unittest
 
 import pysitk.simple_itk_helper as sitkh
 
-from simplereg.definitions import DIR_TEST
+from simplereg.definitions import DIR_DATA
 import simplereg.niftyreg
 
 
@@ -25,21 +25,21 @@ class NiftyRegTest(unittest.TestCase):
 
         # ----------------------------------2D---------------------------------
         self.fixed_sitk_2D = sitk.ReadImage(
-            os.path.join(DIR_TEST, "2D_Brain_Target.png"))
+            os.path.join(DIR_DATA, "2D_Brain_Target.png"))
         self.fixed_sitk_mask_2D = sitk.ReadImage(
-            os.path.join(DIR_TEST, "2D_Brain_Target_mask.png"))
+            os.path.join(DIR_DATA, "2D_Brain_Target_mask.png"))
 
         self.moving_sitk_2D = sitk.ReadImage(
-            os.path.join(DIR_TEST, "2D_Brain_Source.png"))
+            os.path.join(DIR_DATA, "2D_Brain_Source.png"))
         self.moving_sitk_mask_2D = sitk.ReadImage(
-            os.path.join(DIR_TEST, "2D_Brain_Source_mask.png"))
+            os.path.join(DIR_DATA, "2D_Brain_Source_mask.png"))
 
         # ---------------------------------3D----------------------------------
         self.fixed_sitk_3D = sitk.ReadImage(
-            os.path.join(DIR_TEST, "3D_Brain_AD.nii.gz"))
+            os.path.join(DIR_DATA, "3D_Brain_Source.nii.gz"))
 
         self.moving_sitk_3D = sitk.ReadImage(
-            os.path.join(DIR_TEST, "3D_Brain_Template.nii.gz"))
+            os.path.join(DIR_DATA, "3D_Brain_Target.nii.gz"))
 
     def tearDown_reg_aladin(self):
         print("Computational time = %s" % (
