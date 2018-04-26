@@ -45,5 +45,11 @@ setup(name='SimpleReg',
           'Programming Language :: Python :: 2',
           'Programming Language :: Python :: 2.7',
       ],
-
+      entry_points={
+          'console_scripts': [
+              'simplereg_transform_image = simplereg.application.transform_image:main',
+              'simplereg_resample = simplereg.application.resample:main',
+              'simplereg_invert_transform = simplereg.application.invert_transform:main',
+          ],
+      },
       )
