@@ -26,6 +26,7 @@ class NiftyReg(WrapperRegistration):
                  moving_sitk,
                  fixed_sitk_mask,
                  moving_sitk_mask,
+                 transform_init,
                  options,
                  omp,
                  subfolder,
@@ -55,7 +56,10 @@ class NiftyReg(WrapperRegistration):
             self._dir_tmp, "moving_mask.nii.gz")
         self._warped_moving_mask_str = os.path.join(
             self._dir_tmp, "warped_mask.nii.gz")
+        self._transform_init_str = os.path.join(
+            self._dir_tmp, "initial_transform.txt")
 
+        self._transform_init = transform_init
         self._omp = omp
 
     def _run(self):
@@ -74,6 +78,13 @@ class NiftyReg(WrapperRegistration):
             sitkh.write_nifti_image_sitk(
                 self._moving_sitk_mask, self._moving_mask_str)
 
+        if self._transform_init is not None:
+            ph.write_array_to_file(
+                self._transform_init_str,
+                self._transform_init,
+                access_mode="a",
+                verbose=0)
+
 
 class RegAladin(NiftyReg):
 
@@ -82,6 +93,7 @@ class RegAladin(NiftyReg):
                  moving_sitk=None,
                  fixed_sitk_mask=None,
                  moving_sitk_mask=None,
+                 transform_init=None,
                  options="",
                  subfolder="RegAladin",
                  omp=OMP,
@@ -93,6 +105,7 @@ class RegAladin(NiftyReg):
                           moving_sitk=moving_sitk,
                           fixed_sitk_mask=fixed_sitk_mask,
                           moving_sitk_mask=moving_sitk_mask,
+                          transform_init=transform_init,
                           options=options,
                           subfolder=subfolder,
                           omp=omp,
@@ -119,6 +132,9 @@ class RegAladin(NiftyReg):
 
         if self._moving_sitk_mask is not None:
             nreg.inputs.fmask_file = self._moving_mask_str
+
+        if self._transform_init is not None:
+            nreg.inputs.in_aff_file = self._transform_init_str
 
         # Execute registration
         if self._verbose:
@@ -195,6 +211,7 @@ class RegF3D(NiftyReg):
                  moving_sitk=None,
                  fixed_sitk_mask=None,
                  moving_sitk_mask=None,
+                 transform_init=None,
                  options="",
                  subfolder="RegF3D",
                  omp=OMP,
@@ -206,6 +223,7 @@ class RegF3D(NiftyReg):
                           moving_sitk=moving_sitk,
                           fixed_sitk_mask=fixed_sitk_mask,
                           moving_sitk_mask=moving_sitk_mask,
+                          transform_init=transform_init,
                           options=options,
                           subfolder=subfolder,
                           omp=omp,
@@ -232,6 +250,9 @@ class RegF3D(NiftyReg):
 
         if self._moving_sitk_mask is not None:
             nreg.inputs.fmask_file = self._moving_mask_str
+
+        if self._transform_init is not None:
+            nreg.inputs.aff_file = self._transform_init_str
 
         # Execute registration
         if self._verbose:
