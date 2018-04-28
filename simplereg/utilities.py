@@ -88,7 +88,10 @@ def convert_regaladin_to_sitk_transform(matrix):
 
     # Convert to affine transform
     # (Note, it is not possible to extract a EulerxDTransform even for
-    # rigid reg_aladin trafos: 'Error: Attempt to set a Non-Orthogonal matrix')
+    # rigid reg_aladin trafos: 'Error: Attempt to set a Non-Orthogonal matrix';
+    # QR decomposition could work, but initial tests showed that np.linalg.qr
+    # and scipy.linalg.qr (can) return a matrix R with negative diagonal
+    # values)
     transform_sitk = sitk.AffineTransform(A.flatten(), t)
 
     return transform_sitk
