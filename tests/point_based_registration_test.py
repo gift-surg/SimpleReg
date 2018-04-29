@@ -106,3 +106,71 @@ class PointBasedRegistrationTest(unittest.TestCase):
 
         print("Computational time Arun et al.: %s" %
               point_based_registration.get_computational_time())
+
+    def test_RigidCoherentPointDrift(self):
+
+        for optimize_scaling in [0, 1]:
+            point_based_registration = pbr.RigidCoherentPointDrift(
+                fixed_points_nda=self.fixed_points_nda,
+                moving_points_nda=self.moving_points_nda[0:-1, :],
+                optimize_scaling=optimize_scaling,
+                verbose=0
+            )
+            point_based_registration.run()
+            R, t = point_based_registration.get_registration_outcome_nda()
+
+            # Compute Fiducial Registration Error
+            transformed_fixed = np.transpose(
+                R.dot(self.fixed_points_nda.transpose())) + t
+
+            FRE = utils.fiducial_registration_error(
+                self.moving_points_nda, transformed_fixed)
+
+            # Test FRE accuracy
+            self.assertAlmostEqual(FRE, 0, places=self.precision)
+
+            # Test rotation matrix accuracy
+            self.assertAlmostEqual(
+                np.sum(np.abs(R - self.groundtruth_rotation_nda)), 0,
+                places=self.precision)
+
+            # Test translation matrix accuracy
+            self.assertAlmostEqual(
+                np.sum(np.abs(t - self.groundtruth_translation_nda)), 0,
+                places=self.precision)
+
+            print("Computational time Rigid CPD (optimize_scaling=%d): %s" % (
+                  optimize_scaling,
+                  point_based_registration.get_computational_time()))
+
+    # def test_AffineCoherentPointDrift(self):
+
+    #     point_based_registration = pbr.AffineCoherentPointDrift(
+    #         fixed_points_nda=self.fixed_points_nda,
+    #         moving_points_nda=self.moving_points_nda[0:-1, :],
+    #     )
+    #     point_based_registration.run()
+    #     R, t = point_based_registration.get_registration_outcome_nda()
+
+    #     # Compute Fiducial Registration Error
+    #     transformed_fixed = np.transpose(
+    #         R.dot(self.fixed_points_nda.transpose())) + t
+
+    #     FRE = utils.fiducial_registration_error(
+    #         self.moving_points_nda, transformed_fixed)
+
+    #     # Test FRE accuracy
+    #     self.assertAlmostEqual(FRE, 0, places=self.precision)
+
+    #     # Test rotation matrix accuracy
+    #     self.assertAlmostEqual(
+    #         np.sum(np.abs(R - self.groundtruth_rotation_nda)), 0,
+    #         places=self.precision)
+
+    #     # Test translation matrix accuracy
+    #     self.assertAlmostEqual(
+    #         np.sum(np.abs(t - self.groundtruth_translation_nda)), 0,
+    #         places=self.precision)
+
+    #     print("Computational time Affine CPD: %s" %
+    #           point_based_registration.get_computational_time())

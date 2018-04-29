@@ -1,22 +1,22 @@
 ##
 # \file point_based_registration.py
-# \brief      Class to perform rigid registration based on least-squares
-#             fitting of two 3D point sets
+# \brief      Class to perform rigid/affine registration of two 3D point sets
 #
 # \author     Michael Ebner (michael.ebner.14@ucl.ac.uk)
 # \date       April 2017
 #
 
 
-from abc import ABCMeta, abstractmethod
+import itertools
 import numpy as np
+from abc import ABCMeta, abstractmethod
 
 import pysitk.python_helper as ph
 
 
 ##
-# Abstract class for point-based registration to find rotation matrix R and
-# translation t that minimize || moving - (R.fixed - t) ||_2^2
+# Abstract class for point-based registration to find rigid/affine matrix A and
+# translation t that achieve moving ~ A.fixed + t
 # \date       2018-04-21 19:52:08-0600
 #
 class PointBasedRegistration(object):
@@ -38,7 +38,7 @@ class PointBasedRegistration(object):
 
         self._computational_time = ph.get_zero_time()
 
-        self._rotation_nda = None
+        self._matrix_nda = None
         self._translation_nda = None
 
     ##
@@ -95,8 +95,8 @@ class PointBasedRegistration(object):
         return self._computational_time
 
     ##
-    # Gets the registration outcome, i.e. the rotation matrix R and translation
-    # t that minimize  || moving - (R.fixed - t) ||_2^2
+    # Gets the registration outcome, i.e. the matrix A and translation
+    # t that  achieve moving ~ A.fixed + t
     # \date       2018-04-21 23:41:30-0600
     #
     # \param      self  The object
@@ -104,7 +104,7 @@ class PointBasedRegistration(object):
     # \return     The registration outcome nda.
     #
     def get_registration_outcome_nda(self):
-        return self._rotation_nda, self._translation_nda
+        return self._matrix_nda, self._translation_nda
 
     ##
     # Run the registration method
@@ -119,15 +119,9 @@ class PointBasedRegistration(object):
         if not isinstance(self._moving_points_nda, np.ndarray):
             raise IOError("Moving points must be of type np.array")
 
-        if self._fixed_points_nda.shape[1] != 3:
-            raise IOError("Fixed points must be of dimension N x 3")
-
-        if self._moving_points_nda.shape[1] != 3:
-            raise IOError("Moving points must be of dimension N x 3")
-
-        if self._fixed_points_nda.shape != self._moving_points_nda.shape:
+        if self._fixed_points_nda.shape[1] != self._moving_points_nda.shape[1]:
             raise IOError(
-                "Dimensions of fixed and moving points must be equal")
+                "Spatial dimensions of fixed and moving points must be equal")
 
         # Execute registration method
         time_start = ph.start_timing()
@@ -147,8 +141,8 @@ class PointBasedRegistration(object):
         pass
 
     def _print_registration_estimate(self):
-        ph.print_info("Rotation matrix:")
-        print(self._rotation_nda)
+        ph.print_info("Transformation matrix:")
+        print(self._matrix_nda)
 
         ph.print_info("Translation vector:")
         print(self._translation_nda)
@@ -156,7 +150,7 @@ class PointBasedRegistration(object):
 
 ##
 # Implementation of quaternion-based algorithm for point-based rigid
-# registration as described in [Besl and McKay, 1992, Section III.C].
+# registration as described in Besl and McKay (1992), Section III.C.
 #
 # Besl, P. J., & McKay, H. D. (1992). A method for registration of 3-D shapes.
 # IEEE Transactions on Pattern Analysis and Machine Intelligence, 14(2),
@@ -174,6 +168,13 @@ class BeslMcKayPointBasedRegistration(PointBasedRegistration):
         )
 
     def _run(self):
+
+        if self._fixed_points_nda.shape[1] != 3:
+            raise IOError("Fixed/Moving points must be of dimension N x 3")
+
+        if self._fixed_points_nda.shape[0] != self._moving_points_nda.shape[0]:
+            raise IOError(
+                "Number of fixed and moving points must be equal")
 
         # Compute centroids
         mu_fixed_nda = np.mean(self._fixed_points_nda, axis=0)
@@ -216,7 +217,7 @@ class BeslMcKayPointBasedRegistration(PointBasedRegistration):
         # Compute optimal translation vector
         t = mu_moving_nda - R.dot(mu_fixed_nda)
 
-        self._rotation_nda = R
+        self._matrix_nda = R
         self._translation_nda = t
 
         if self._verbose:
@@ -225,7 +226,7 @@ class BeslMcKayPointBasedRegistration(PointBasedRegistration):
 
 ##
 # Implementation of SVD-based algorithm for point-based rigid registration as
-# described in [Arun et al., 1987].
+# described in Arun et al. (1987).
 #
 # Arun, K. S., Huang, T. S., & Blostein, S. D. (1987). Least-Squares Fitting of
 # Two 3-D Point Sets. IEEE Transactions on Pattern Analysis and Machine
@@ -243,6 +244,13 @@ class ArunHuangBlosteinPointBasedRegistration(PointBasedRegistration):
         )
 
     def _run(self):
+
+        if self._fixed_points_nda.shape[1] != 3:
+            raise IOError("Fixed/Moving points must be of dimension N x 3")
+
+        if self._fixed_points_nda.shape[0] != self._moving_points_nda.shape[0]:
+            raise IOError(
+                "Number of fixed and moving points must be equal")
 
         # Compute centroids
         mu_fixed_nda = np.mean(self._fixed_points_nda, axis=0)
@@ -290,8 +298,236 @@ class ArunHuangBlosteinPointBasedRegistration(PointBasedRegistration):
         # Compute translation
         t = mu_moving_nda - R.dot(mu_fixed_nda)
 
-        self._rotation_nda = R
+        self._matrix_nda = R
         self._translation_nda = t
+
+        if self._verbose:
+            self._print_registration_estimate()
+
+
+##
+# Implementation of Coherent Point Drift algorithm for point set registration
+# as described in Myronenko et al. (2010).
+#
+#
+# Myronenko, A., & Xubo Song. (2010). Point Set Registration: Coherent Point
+# Drift. IEEE Transactions on Pattern Analysis and Machine Intelligence,
+# 32(12), 2262-2275.
+# \date       2018-04-28 16:11:13-0600
+#
+class CoherentPointDrift(PointBasedRegistration):
+    __metaclass__ = ABCMeta
+
+    ##
+    # { constructor_description }
+    # \date       2018-04-28 16:27:20-0600
+    #
+    # \param      self               The object
+    # \param      fixed_points_nda   Set of fixed points as (M x dim) data
+    #                                array
+    # \param      moving_points_nda  Set of fixed points as (N x dim) data
+    #                                array
+    # \param      weight             Weight of uniform distribution, scalar in
+    #                                [0, 1]
+    # \param      iterations         The iterations
+    # \param      verbose            The verbose
+    #
+    def __init__(self,
+                 fixed_points_nda,
+                 moving_points_nda,
+                 weight,
+                 iterations,
+                 verbose,
+                 tolerance,
+                 ):
+        PointBasedRegistration.__init__(
+            self,
+            fixed_points_nda=fixed_points_nda,
+            moving_points_nda=moving_points_nda,
+            verbose=verbose,
+        )
+
+        self._weight = float(weight)
+        self._iterations = iterations
+        self._tolerance = tolerance
+
+    def _get_initial_sigma2(self):
+        X = self._moving_points_nda
+        Y = self._fixed_points_nda
+
+        N = X.shape[0]
+        M = Y.shape[0]
+        dim = X.shape[1]
+
+        sigma2 = 0.
+        for m, n in itertools.product(range(M), range(N)):
+            sigma2 += np.sum(np.square(X[n, :] - Y[m, :]))
+        sigma2 /= float(dim * N * M)
+
+        return sigma2
+
+    def _get_posterior_probabilities(self, matrix, translation, sigma2):
+        X = self._moving_points_nda
+        Y = self._fixed_points_nda
+        w = self._weight
+
+        dim = X.shape[1]
+        N = X.shape[0]
+        M = Y.shape[0]
+
+        P = np.zeros((M, N))
+        for m, n in itertools.product(range(M), range(N)):
+            num = np.exp(- 0.5 * np.sum(np.square(
+                X[n, :] - matrix.dot(Y[m, :]) - translation)) / sigma2)
+            denom1 = np.sum([
+                np.exp(- 0.5 * np.sum(np.square(
+                    X[n, :] - matrix.dot(Y[k, :]) - translation)) / sigma2)
+                for k in range(M)])
+            denom2 = w / (1. - w) * M / float(N) * np.power(
+                2. * np.pi * sigma2, dim / 2.)
+            P[m, n] = num / float(denom1 + denom2)
+
+        return P
+
+    def _get_mean_vectors(self, posteriors):
+
+        N_p = np.sum(posteriors)
+
+        X = self._moving_points_nda
+        Y = self._fixed_points_nda
+
+        mu_x = np.sum(X.transpose().dot(posteriors.transpose()), axis=1) / N_p
+        mu_y = np.sum(Y.transpose().dot(posteriors), axis=1) / N_p
+
+        return mu_x, mu_y, N_p
+
+    def _get_centered_point_set_matrices(self, mean_x, mean_y):
+        X = self._moving_points_nda
+        Y = self._fixed_points_nda
+
+        return X - mean_x, Y - mean_y
+
+    @staticmethod
+    def _update_sigma2(N_pD, X_hat, P, matrix):
+        term1 = np.trace(X_hat.transpose().dot(
+            np.diag(np.sum(P, axis=0))).dot(X_hat))
+        term2 = np.trace(matrix)
+
+        return (term1 - term2) / float(N_pD)
+
+    def _is_converged(self, matrix, translation, sigma2, iteration):
+        criterias = [
+            np.linalg.norm(self._translation_nda - translation) +
+            np.linalg.norm(self._matrix_nda - matrix) < self._tolerance,
+            sigma2 < 0,
+            iteration > self._iterations - 1,
+        ]
+
+        if True in criterias:
+            if self._verbose:
+                if criterias[0]:
+                    ph.print_info(
+                        "Tolerance (%.g) after %d iterations reached" % (
+                            self._tolerance, iteration))
+                if criterias[1]:
+                    ph.print_info(
+                        "Negative sigma2 encountered after %d iterations" %
+                        iteration)
+                if criterias[2]:
+                    ph.print_info(
+                        "Maximum number of iterations (%d)" %
+                        self._iterations)
+            return True
+        else:
+            return False
+
+
+class RigidCoherentPointDrift(CoherentPointDrift):
+
+    def __init__(self,
+                 fixed_points_nda,
+                 moving_points_nda,
+                 iterations=100,
+                 weight=0.5,
+                 scaling=1,
+                 verbose=1,
+                 optimize_scaling=0,
+                 tolerance=1e-8,
+                 ):
+
+        CoherentPointDrift.__init__(
+            self,
+            fixed_points_nda=fixed_points_nda,
+            moving_points_nda=moving_points_nda,
+            iterations=iterations,
+            weight=weight,
+            verbose=verbose,
+            tolerance=tolerance,
+        )
+        self._scaling = float(scaling)
+        self._optimize_scaling = bool(optimize_scaling)
+
+        self._update_scaling = {
+            True: self._update_scaling_true,
+            False: self._update_scaling_false,
+        }
+
+    @staticmethod
+    def _update_scaling_true(A, R, Y_hat, P):
+        num = np.trace(A.transpose().dot(R))
+        denom = np.trace(Y_hat.transpose().dot(
+            np.diag(np.sum(P, axis=1))).dot(Y_hat))
+        return num / float(denom)
+
+    def _update_scaling_false(self, A, R, Y_hat, P):
+        return self._scaling
+
+    def _run(self):
+
+        sigma2 = self._get_initial_sigma2()
+
+        dim = self._fixed_points_nda.shape[1]
+        R = np.eye(dim)
+        t = np.zeros(dim)
+        s = self._scaling
+
+        self._matrix_nda = s * R
+        self._translation_nda = t
+
+        not_converged = True
+        iteration = 0
+
+        # EM-optimization
+        while not_converged:
+
+            # E-step
+            P = self._get_posterior_probabilities(s * R, t, sigma2)
+
+            # M-step
+            mean_x, mean_y, N_p = self._get_mean_vectors(P)
+            X_hat, Y_hat = self._get_centered_point_set_matrices(
+                mean_x, mean_y)
+            A = X_hat.transpose().dot(P.transpose()).dot(Y_hat)
+            U, S2, V_transpose = np.linalg.svd(A)
+            c = np.ones(dim)
+            c[-1] = np.linalg.det(U.dot(V_transpose))
+            C = np.diag(c)
+            R = U.dot(C).dot(V_transpose)
+            s = self._update_scaling[self._optimize_scaling](A, R, Y_hat, P)
+            t = mean_x - s * R.dot(mean_y)
+            sigma2 = self._update_sigma2(
+                N_p * dim, X_hat, P, s * A.transpose().dot(R))
+
+            # Check for convergence
+            not_converged = not self._is_converged(
+                matrix=s * R,
+                translation=t,
+                sigma2=sigma2,
+                iteration=iteration)
+
+            self._matrix_nda = s * R
+            self._translation_nda = t
+            iteration += 1
 
         if self._verbose:
             self._print_registration_estimate()
