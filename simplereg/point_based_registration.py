@@ -27,8 +27,8 @@ class PointBasedRegistration(object):
     # \date       2018-04-21 19:58:19-0600
     #
     # \param      self               The object
-    # \param      fixed_points_nda   Fixed points as (N x 3) numpy array
-    # \param      moving_points_nda  Moving points as (N x 3) numpy array
+    # \param      fixed_points_nda   Fixed points as (N x dim) numpy array
+    # \param      moving_points_nda  Moving points as (N x dim) numpy array
     # \param      verbose            Verbose output, boolean
     #
     def __init__(self, fixed_points_nda, moving_points_nda, verbose):
@@ -309,7 +309,6 @@ class ArunHuangBlosteinPointBasedRegistration(PointBasedRegistration):
 # Implementation of Coherent Point Drift algorithm for point set registration
 # as described in Myronenko et al. (2010).
 #
-#
 # Myronenko, A., & Xubo Song. (2010). Point Set Registration: Coherent Point
 # Drift. IEEE Transactions on Pattern Analysis and Machine Intelligence,
 # 32(12), 2262-2275.
@@ -351,6 +350,14 @@ class CoherentPointDrift(PointBasedRegistration):
         self._iterations = iterations
         self._tolerance = tolerance
 
+    ##
+    # Gets the initial isotropic covariance value sigma2.
+    # \date       2018-04-28 20:31:24-0600
+    #
+    # \param      self  The object
+    #
+    # \return     Initial estimate for isotropic covariance value.
+    #
     def _get_initial_sigma2(self):
         X = self._moving_points_nda
         Y = self._fixed_points_nda
@@ -366,6 +373,17 @@ class CoherentPointDrift(PointBasedRegistration):
 
         return sigma2
 
+    ##
+    # Gets the posterior probabilities.
+    # \date       2018-04-28 20:33:45-0600
+    #
+    # \param      self         The object
+    # \param      matrix       Transformation matrix
+    # \param      translation  Translation
+    # \param      sigma2       Isotropic covariance value
+    #
+    # \return     The posterior probabilities.
+    #
     def _get_posterior_probabilities(self, matrix, translation, sigma2):
         X = self._moving_points_nda
         Y = self._fixed_points_nda
@@ -389,6 +407,15 @@ class CoherentPointDrift(PointBasedRegistration):
 
         return P
 
+    ##
+    # Gets the mean vectors of the point sets
+    # \date       2018-04-28 20:34:23-0600
+    #
+    # \param      self        The object
+    # \param      posteriors  Posterior probabilities
+    #
+    # \return     The mean vectors mean_x, mean_y
+    #
     def _get_mean_vectors(self, posteriors):
 
         N_p = np.sum(posteriors)
@@ -401,12 +428,33 @@ class CoherentPointDrift(PointBasedRegistration):
 
         return mu_x, mu_y, N_p
 
+    ##
+    # Gets the centered point set matrices.
+    # \date       2018-04-28 20:35:51-0600
+    #
+    # \param      self    The object
+    # \param      mean_x  Mean vector of moving point set
+    # \param      mean_y  Mean vector of fixed point set
+    #
+    # \return     The centered point set matrices.
+    #
     def _get_centered_point_set_matrices(self, mean_x, mean_y):
         X = self._moving_points_nda
         Y = self._fixed_points_nda
 
         return X - mean_x, Y - mean_y
 
+    ##
+    # Update isotropic covariance value
+    # \date       2018-04-28 20:36:37-0600
+    #
+    # \param      N_pD    Product of N_p times spatial dimension D
+    # \param      X_hat   Centered moving point set matrix
+    # \param      P       Posterior probabilities
+    # \param      matrix  Temp matrix
+    #
+    # \return     Updated isotropic covariance value
+    #
     @staticmethod
     def _update_sigma2(N_pD, X_hat, P, matrix):
         term1 = np.trace(X_hat.transpose().dot(
@@ -415,11 +463,23 @@ class CoherentPointDrift(PointBasedRegistration):
 
         return (term1 - term2) / float(N_pD)
 
+    ##
+    # Determines if converged.
+    # \date       2018-04-28 20:38:10-0600
+    #
+    # \param      self         The object
+    # \param      matrix       Transformation matrix
+    # \param      translation  Translation matrix
+    # \param      sigma2       Isotropic covariance value
+    # \param      iteration    The iteration
+    #
+    # \return     True if converged, False otherwise.
+    #
     def _is_converged(self, matrix, translation, sigma2, iteration):
         criterias = [
             np.linalg.norm(self._translation_nda - translation) +
             np.linalg.norm(self._matrix_nda - matrix) < self._tolerance,
-            sigma2 < 0,
+            sigma2 < self._tolerance,
             iteration > self._iterations - 1,
         ]
 
@@ -442,17 +502,37 @@ class CoherentPointDrift(PointBasedRegistration):
             return False
 
 
+##
+# Implementation of rigid (+ scaling) point set registration algorithm, see
+# Myronenko et al. (2010), Fig. 2
+# \date       2018-04-28 19:49:46-0600
+#
 class RigidCoherentPointDrift(CoherentPointDrift):
 
+    ##
+    # Store information for rigid  (+scaling) Coherent Point Drift (CPD)
+    # \date       2018-04-28 20:25:21-0600
+    #
+    # \param      self               The object
+    # \param      fixed_points_nda   Fixed points as (N x dim) numpy array
+    # \param      moving_points_nda  Moving points as (N x dim) numpy array
+    # \param      iterations         Number of maximum iterations for algorithm
+    # \param      weight             Weight of uniform distribution, in [0, 1]
+    # \param      scaling            Scaling factor, scalar value > 0
+    # \param      optimize_scaling   Turn on/off optimization for scaling
+    #                                factor, bool
+    # \param      tolerance          Tolerance for convergence
+    # \param      verbose            Verbose output, bool
+    #
     def __init__(self,
                  fixed_points_nda,
                  moving_points_nda,
                  iterations=100,
                  weight=0.5,
                  scaling=1,
-                 verbose=1,
                  optimize_scaling=0,
                  tolerance=1e-8,
+                 verbose=1,
                  ):
 
         CoherentPointDrift.__init__(
@@ -472,6 +552,10 @@ class RigidCoherentPointDrift(CoherentPointDrift):
             False: self._update_scaling_false,
         }
 
+    ##
+    # Estimate scaling factor in case optimization desired
+    # \date       2018-04-28 20:30:05-0600
+    #
     @staticmethod
     def _update_scaling_true(A, R, Y_hat, P):
         num = np.trace(A.transpose().dot(R))
@@ -479,11 +563,16 @@ class RigidCoherentPointDrift(CoherentPointDrift):
             np.diag(np.sum(P, axis=1))).dot(Y_hat))
         return num / float(denom)
 
+    ##
+    # Return initial scaling value if no optimization desired
+    # \date       2018-04-28 20:30:49-0600
+    #
     def _update_scaling_false(self, A, R, Y_hat, P):
         return self._scaling
 
     def _run(self):
 
+        # Get initial isotropic covariance value
         sigma2 = self._get_initial_sigma2()
 
         dim = self._fixed_points_nda.shape[1]
@@ -526,6 +615,93 @@ class RigidCoherentPointDrift(CoherentPointDrift):
                 iteration=iteration)
 
             self._matrix_nda = s * R
+            self._translation_nda = t
+            iteration += 1
+
+        if self._verbose:
+            self._print_registration_estimate()
+
+
+##
+# Implementation of affine point set registration algorithm, see Myronenko et
+# al. (2010), Fig. 3
+# \date       2018-04-28 19:49:46-0600
+#
+class AffineCoherentPointDrift(CoherentPointDrift):
+
+    ##
+    # Store information for affine Coherent Point Drift (CPD)
+    # \date       2018-04-28 20:25:21-0600
+    #
+    # \param      self               The object
+    # \param      fixed_points_nda   Fixed points as (N x dim) numpy array
+    # \param      moving_points_nda  Moving points as (N x dim) numpy array
+    # \param      iterations         Number of maximum iterations for algorithm
+    # \param      weight             Weight of uniform distribution, in [0, 1]
+    # \param      tolerance          Tolerance for convergence
+    # \param      verbose            Verbose output, bool
+    #
+    def __init__(self,
+                 fixed_points_nda,
+                 moving_points_nda,
+                 iterations=100,
+                 weight=0.5,
+                 tolerance=1e-8,
+                 verbose=1,
+                 ):
+
+        CoherentPointDrift.__init__(
+            self,
+            fixed_points_nda=fixed_points_nda,
+            moving_points_nda=moving_points_nda,
+            iterations=iterations,
+            weight=weight,
+            verbose=verbose,
+            tolerance=tolerance,
+        )
+
+    def _run(self):
+
+        # Get initial isotropic covariance value
+        sigma2 = self._get_initial_sigma2()
+
+        dim = self._fixed_points_nda.shape[1]
+        B = np.eye(dim)
+        t = np.zeros(dim)
+
+        self._matrix_nda = B
+        self._translation_nda = t
+
+        not_converged = True
+        iteration = 0
+
+        # EM-optimization
+        while not_converged:
+
+            # E-step
+            P = self._get_posterior_probabilities(B, t, sigma2)
+
+            # M-step
+            mean_x, mean_y, N_p = self._get_mean_vectors(P)
+            X_hat, Y_hat = self._get_centered_point_set_matrices(
+                mean_x, mean_y)
+            B = X_hat.transpose().dot(P.transpose()).dot(Y_hat).dot(
+                np.linalg.inv(Y_hat.transpose().dot(
+                    np.diag(np.sum(P, axis=1))).dot(Y_hat)))
+            t = mean_x - B.dot(mean_y)
+            sigma2 = self._update_sigma2(
+                N_p * dim, X_hat, P,
+                X_hat.transpose().dot(P.transpose()).dot(
+                    Y_hat).dot(B.transpose()))
+
+            # Check for convergence
+            not_converged = not self._is_converged(
+                matrix=B,
+                translation=t,
+                sigma2=sigma2,
+                iteration=iteration)
+
+            self._matrix_nda = B
             self._translation_nda = t
             iteration += 1
 
