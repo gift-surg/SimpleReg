@@ -491,11 +491,11 @@ class CoherentPointDrift(PointBasedRegistration):
                             self._tolerance, iteration))
                 if criterias[1]:
                     ph.print_info(
-                        "Negative sigma2 encountered after %d iterations" %
-                        iteration)
+                        "Negative isotropic covariance encountered "
+                        "after %d iterations" % iteration)
                 if criterias[2]:
                     ph.print_info(
-                        "Maximum number of iterations (%d)" %
+                        "Maximum number of iterations (%d) reached" %
                         self._iterations)
             return True
         else:
