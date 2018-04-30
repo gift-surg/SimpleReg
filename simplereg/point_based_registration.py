@@ -460,8 +460,13 @@ class CoherentPointDrift(PointBasedRegistration):
         term1 = np.trace(X_hat.transpose().dot(
             np.diag(np.sum(P, axis=0))).dot(X_hat))
         term2 = np.trace(matrix)
+        sigma2 = (term1 - term2) / float(N_pD)
 
-        return (term1 - term2) / float(N_pD)
+        # ensure positivity; not stated in CPD-paper. However,
+        # frequently encountered negative sigma2 otherwise.
+        sigma2 = np.abs(sigma2)
+        
+        return sigma2
 
     ##
     # Determines if converged.
@@ -479,8 +484,8 @@ class CoherentPointDrift(PointBasedRegistration):
         criterias = [
             np.linalg.norm(self._translation_nda - translation) +
             np.linalg.norm(self._matrix_nda - matrix) < self._tolerance,
-            sigma2 < self._tolerance,
             iteration > self._iterations - 1,
+            # sigma2 < self._tolerance,
         ]
 
         if True in criterias:
@@ -491,12 +496,12 @@ class CoherentPointDrift(PointBasedRegistration):
                             self._tolerance, iteration))
                 if criterias[1]:
                     ph.print_info(
-                        "Negative isotropic covariance encountered "
-                        "after %d iterations" % iteration)
-                if criterias[2]:
-                    ph.print_info(
                         "Maximum number of iterations (%d) reached" %
                         self._iterations)
+                # if criterias[-1]:
+                #     ph.print_info(
+                #         "Negative isotropic covariance encountered "
+                #         "after %d iterations" % iteration)
             return True
         else:
             return False
@@ -530,7 +535,7 @@ class RigidCoherentPointDrift(CoherentPointDrift):
                  iterations=100,
                  weight=0.5,
                  scaling=1,
-                 optimize_scaling=0,
+                 optimize_scaling=False,
                  tolerance=1e-8,
                  verbose=1,
                  ):
