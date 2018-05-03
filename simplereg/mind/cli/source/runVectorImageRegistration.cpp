@@ -12,6 +12,7 @@
 #include "itkCommand.h"
 #include "itkImageFileReader.h"
 #include "itkImageFileWriter.h"
+#include "itkTransformFileWriter.h"
 
 #include <iomanip>
 
@@ -58,6 +59,9 @@ int main(int argc, char *argv[])
   fixedImageReader->SetFileName( fixedImageFile );
   ReaderType::Pointer movingImageReader = ReaderType::New();
   movingImageReader->SetFileName( movingImageFile );
+
+  using TransformWriterType = itk::TransformFileWriterTemplate<ParametersValueType>;
+  TransformWriterType::Pointer transformWriter = TransformWriterType::New();
 
   // Get the input images
   try
@@ -168,6 +172,10 @@ int main(int argc, char *argv[])
   optimizer->StartOptimization();
   std::cout << "After optimization affine parameters are: "
     << affineTransform->GetParameters() << std::endl;
+
+  transformWriter->SetInput(affineTransform);
+  transformWriter->SetFileName("transform.txt");
+  transformWriter->Update();
 
   //
   // Deformable registration
