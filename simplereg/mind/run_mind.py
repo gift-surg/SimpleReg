@@ -15,13 +15,13 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         "--filename",
-        help="Path to 3D NIFTI image",
+        help="Path to 3D NIfTI image",
         type=str,
         required=1,
     )
     parser.add_argument(
-        "--dir-output",
-        help="Path to output directory to store MIND features",
+        "--output",
+        help="Path to 3D NIfTI vector image holding the MIND features",
         type=str,
         required=1,
     )
@@ -67,20 +67,25 @@ if __name__ == '__main__':
         mind_mat.size[::-1]).transpose()  # fast
     ph.print_info("Time mind_nda/total: %s" % ph.stop_timing(start_time))
 
-    images_sitk = [None] * mind_nda.shape[-1]
-    paths_to_mind = [None] * mind_nda.shape[-1]
+    # images_sitk = [None] * mind_nda.shape[-1]
+    # paths_to_mind = [None] * mind_nda.shape[-1]
 
-    # Write extracted MIND features
-    for i in range(mind_nda.shape[-1]):
-        images_sitk[i] = sitk.GetImageFromArray(
-            np.squeeze(mind_nda[:, :, :, i]))
-        images_sitk[i].CopyInformation(image_sitk)
-        paths_to_mind[i] = os.path.join(
-            args.dir_output, "%s_MIND-%d.nii.gz" % (name, i + 1))
-        sitkh.write_nifti_image_sitk(images_sitk[i], paths_to_mind[i])
+    mind_sitk = sitk.GetImageFromArray(mind_nda)
+    mind_sitk.SetOrigin(image_sitk.GetOrigin())
+    mind_sitk.SetSpacing(image_sitk.GetSpacing())
+    mind_sitk.SetDirection(image_sitk.GetDirection())
+
+    sitkh.write_nifti_image_sitk(mind_sitk, args.output)
+
+    # # Write extracted MIND features
+    # for i in range(mind_nda.shape[-1]):
+    #     images_sitk[i] = sitk.GetImageFromArray(
+    #         np.squeeze(mind_nda[:, :, :, i]))
+    #     images_sitk[i].CopyInformation(image_sitk)
+    #     paths_to_mind[i] = os.path.join(
+    #         args.dir_output, "%s_MIND-%d.nii.gz" % (name, i + 1))
+    #     sitkh.write_nifti_image_sitk(images_sitk[i], paths_to_mind[i])
 
     # Visualize image and extracted MIND features
     if args.verbose:
-        paths_to_images = list(paths_to_mind)
-        paths_to_images.insert(0, args.filename)
-        ph.show_niftis(paths_to_images)
+        ph.show_niftis([args.filename, args.output])
