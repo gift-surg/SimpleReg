@@ -4,7 +4,10 @@ import os
 import argparse
 import SimpleITK as sitk
 
+import pysitk.python_helper as ph
 import pysitk.simple_itk_helper as sitkh
+
+import simplereg.utilities as utils
 
 
 ##
@@ -29,7 +32,9 @@ def main():
     )
     parser.add_argument(
         "--fixed",
-        help="Path to fixed image",
+        help="Path to fixed image. "
+        "Can be 'same' if fixed image space is identical to the moving image "
+        "space.",
         type=str,
         required=1,
     )
@@ -60,6 +65,21 @@ def main():
         default=0,
     )
     parser.add_argument(
+        "--spacing",
+        help="Set spacing for resampling grid in fixed image space",
+        nargs="+",
+        type=float,
+        default=None,
+    )
+    parser.add_argument(
+        "--add-to-grid",
+        help="Additional grid extension/reduction in each direction of each "
+        "axis in millimeter. If scalar, changes are applied uniformly to grid",
+        nargs="+",
+        type=float,
+        default=None,
+    )
+    parser.add_argument(
         "--verbose",
         help="Turn on/off verbose output",
         type=int,
@@ -67,6 +87,9 @@ def main():
         default=0,
     )
     args = parser.parse_args()
+
+    if args.fixed == "same":
+        args.fixed = args.moving
 
     # read input
     fixed_sitk = sitk.ReadImage(args.fixed)
@@ -78,17 +101,29 @@ def main():
             sitk, "Euler%dDTransform" % fixed_sitk.GetDimension())()
 
     # resample image
+    size, origin, spacing, direction = utils.get_space_resampling_properties(
+        image_sitk=fixed_sitk,
+        spacing=args.spacing,
+        add_to_grid=args.add_to_grid,
+        add_to_grid_unit="mm")
     warped_moving_sitk = sitk.Resample(
         moving_sitk,
-        fixed_sitk,
+        size,
         transform_sitk,
         getattr(sitk, "sitk%s" % args.interpolator.title()),
-        args.padding,
+        origin,
+        spacing,
+        direction,
+        float(args.padding),
         fixed_sitk.GetPixelIDValue(),
     )
 
+    # write resampled image
     sitkh.write_nifti_image_sitk(
         warped_moving_sitk, args.output, verbose=args.verbose)
+
+    if args.verbose:
+        ph.show_niftis([args.output, args.fixed])
 
     return 0
 
