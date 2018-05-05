@@ -9,7 +9,6 @@
 
 import itertools
 import numpy as np
-import SimpleITK as sitk
 from abc import ABCMeta, abstractmethod
 
 import pysitk.python_helper as ph
@@ -464,7 +463,7 @@ class CoherentPointDrift(PointBasedRegistration):
 
         # ensure positivity; not stated in CPD-paper. However,
         # frequently encountered negative sigma2 otherwise.
-        sigma2 = np.max([2*self._tolerance, np.abs(sigma2)])
+        sigma2 = np.max([2 * self._tolerance, np.abs(sigma2)])
 
         return sigma2
 
