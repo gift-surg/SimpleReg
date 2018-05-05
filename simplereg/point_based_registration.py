@@ -9,6 +9,7 @@
 
 import itertools
 import numpy as np
+import SimpleITK as sitk
 from abc import ABCMeta, abstractmethod
 
 import pysitk.python_helper as ph
@@ -455,8 +456,7 @@ class CoherentPointDrift(PointBasedRegistration):
     #
     # \return     Updated isotropic covariance value
     #
-    @staticmethod
-    def _update_sigma2(N_pD, X_hat, P, matrix):
+    def _update_sigma2(self, N_pD, X_hat, P, matrix):
         term1 = np.trace(X_hat.transpose().dot(
             np.diag(np.sum(P, axis=0))).dot(X_hat))
         term2 = np.trace(matrix)
@@ -464,8 +464,8 @@ class CoherentPointDrift(PointBasedRegistration):
 
         # ensure positivity; not stated in CPD-paper. However,
         # frequently encountered negative sigma2 otherwise.
-        sigma2 = np.abs(sigma2)
-        
+        sigma2 = np.max([2*self._tolerance, np.abs(sigma2)])
+
         return sigma2
 
     ##
@@ -498,10 +498,10 @@ class CoherentPointDrift(PointBasedRegistration):
                     ph.print_info(
                         "Maximum number of iterations (%d) reached" %
                         self._iterations)
-                # if criterias[-1]:
-                #     ph.print_info(
-                #         "Negative isotropic covariance encountered "
-                #         "after %d iterations" % iteration)
+                if criterias[-1]:
+                    ph.print_info(
+                        "Zero isotropic covariance encountered "
+                        "after %d iterations" % iteration)
             return True
         else:
             return False
@@ -536,7 +536,7 @@ class RigidCoherentPointDrift(CoherentPointDrift):
                  weight=0.5,
                  scaling=1,
                  optimize_scaling=False,
-                 tolerance=1e-8,
+                 tolerance=1e-12,
                  verbose=1,
                  ):
 
@@ -582,6 +582,7 @@ class RigidCoherentPointDrift(CoherentPointDrift):
 
         dim = self._fixed_points_nda.shape[1]
         R = np.eye(dim)
+
         t = np.zeros(dim)
         s = self._scaling
 
