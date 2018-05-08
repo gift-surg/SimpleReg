@@ -13,8 +13,7 @@ def main():
 
     # Read input
     parser = argparse.ArgumentParser(
-        description="Register landmarks to obtain rigid registration "
-        "transform",
+        description="Perform rigid registration using landmarks",
         prog=None,
         epilog="Author: Michael Ebner (michael.ebner.14@ucl.ac.uk)",
     )

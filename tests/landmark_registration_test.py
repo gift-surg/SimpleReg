@@ -57,7 +57,7 @@ class LandmarkRegistrationTest(unittest.TestCase):
         path_to_moving_landmarks = os.path.join(
             DIR_TEST, "3D_Brain_AD_landmarks.txt")
         path_to_reference = os.path.join(
-            DIR_TEST, "transform_3D_Brain_AD_to_Template.txt")
+            DIR_TEST, "landmark_transform_3D_Brain_Source_to_Target_CPD.txt")
         path_to_result = os.path.join(DIR_TMP, "registration_transform.txt")
 
         exe = re.sub(".pyc", ".py", os.path.abspath(
