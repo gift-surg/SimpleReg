@@ -52,7 +52,6 @@ def main():
     )
     args = parser.parse_args()
 
-    ph.print_subtitle("Estimate landmarks")
     landmark_estimator = le.LandmarkEstimator(
         path_to_image_mask=args.filename,
         n_clusters=args.clusters,
@@ -60,7 +59,8 @@ def main():
     )
     landmark_estimator.run()
     landmarks = landmark_estimator.get_landmarks()
-    ph.write_array_to_file(args.output, landmarks, access_mode="w")
+    ph.write_array_to_file(
+        args.output, landmarks, access_mode="w", verbose=args.verbose)
 
     if args.save_to_image:
         path_to_image = "%s.nii.gz" % \

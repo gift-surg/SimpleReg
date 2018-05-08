@@ -44,7 +44,6 @@ def main():
     )
     args = parser.parse_args()
 
-    ph.print_subtitle("Register landmarks")
     landmarks_fixed_nda = np.loadtxt(args.fixed)
     landmarks_moving_nda = np.loadtxt(args.moving)
 
@@ -63,7 +62,9 @@ def main():
     rigid_transform_sitk.SetTranslation(translation_nda)
 
     sitk.WriteTransform(rigid_transform_sitk, args.output)
-    ph.print_info("Rigid registration transform written to '%s'" % args.output)
+    if args.verbose:
+        ph.print_info(
+            "Rigid registration transform written to '%s'" % args.output)
 
     return 0
 
