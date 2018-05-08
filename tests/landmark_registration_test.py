@@ -1,9 +1,10 @@
-##
 # \file landmark_registration_test.py
-#  \brief  Class containing unit tests for module PointBasedRegistration
+# \brief      Class containing unit tests for landmark registration
+#             applications
 #
-#  \author Michael Ebner (michael.ebner.14@ucl.ac.uk)
-#  \date April 2018
+# \author     Michael Ebner (michael.ebner.14@ucl.ac.uk)
+# \date       April 2018
+#
 
 import os
 import re
@@ -32,7 +33,8 @@ class LandmarkRegistrationTest(unittest.TestCase):
                 DIR_TEST, "%s_landmarks.txt" % image)
             path_to_result = os.path.join(DIR_TMP, "%s_result.txt" % image)
 
-            exe = re.sub(".pyc", ".py", os.path.abspath(estimate_landmarks.__file__))
+            exe = re.sub(".pyc", ".py", os.path.abspath(
+                estimate_landmarks.__file__))
             cmd_args = ["python %s" % exe]
             cmd_args.append("--output %s" % path_to_result)
             cmd_args.append("--filename %s" % path_to_image_fiducials)
@@ -79,4 +81,3 @@ class LandmarkRegistrationTest(unittest.TestCase):
 
         self.assertAlmostEqual(
             np.sum(np.abs(result - reference)), 0, places=self.precision)
-

@@ -42,7 +42,7 @@ def main():
         help="Number of clusters, i.e. number of expected landmarks.",
         type=int,
         required=0,
-        default=0,
+        default=3,
     )
     parser.add_argument(
         "--save-to-image",
