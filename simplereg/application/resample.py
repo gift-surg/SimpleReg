@@ -55,7 +55,7 @@ def main():
         help="Interpolator for image resampling",
         type=str,
         required=0,
-        default="linear",
+        default="Linear",
     )
     parser.add_argument(
         "--padding",
@@ -110,7 +110,7 @@ def main():
         moving_sitk,
         size,
         transform_sitk,
-        getattr(sitk, "sitk%s" % args.interpolator.title()),
+        getattr(sitk, "sitk%s" % args.interpolator),
         origin,
         spacing,
         direction,
