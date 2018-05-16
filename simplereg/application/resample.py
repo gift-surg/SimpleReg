@@ -105,7 +105,7 @@ def main():
             raise IOError("Interpolator order not known")
     else:
         if args.interpolator in ALLOWED_INTERPOLATORS:
-            interpolator_sitk = "sitk.sitk%s" % args.interpolator
+            interpolator_sitk = getattr(sitk, "sitk%s" % args.interpolator)
         else:
             raise IOError("Interpolator not known.")
 
