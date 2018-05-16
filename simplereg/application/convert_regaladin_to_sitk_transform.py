@@ -26,19 +26,19 @@ def main():
         epilog="Author: Michael Ebner (michael.ebner.14@ucl.ac.uk)",
     )
     parser.add_argument(
-        "--filename",
+        "-f", "--filename",
         help="Path to RegAladin (NiftyReg) transformation (.txt)",
         type=str,
         required=1,
     )
     parser.add_argument(
-        "--output",
+        "-o", "--output",
         help="Path to output transformation (.txt)",
         type=str,
         required=1,
     )
     parser.add_argument(
-        "--verbose",
+        "-v", "--verbose",
         help="Turn on/off verbose output",
         type=int,
         required=0,

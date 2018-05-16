@@ -9,6 +9,7 @@ import pysitk.simple_itk_helper as sitkh
 
 import simplereg.utilities as utils
 
+ALLOWED_INTERPOLATORS = ["Linear", "NearestNeighbour", "BSpline"]
 
 ##
 # Apply SimpleITK transform to image
@@ -16,6 +17,8 @@ import simplereg.utilities as utils
 #
 # \return     exit code
 #
+
+
 def main():
 
     # Read input
@@ -25,13 +28,13 @@ def main():
         epilog="Author: Michael Ebner (michael.ebner.14@ucl.ac.uk)",
     )
     parser.add_argument(
-        "--moving",
+        "-m", "--moving",
         help="Path to moving image",
         type=str,
         required=1,
     )
     parser.add_argument(
-        "--fixed",
+        "-f", "--fixed",
         help="Path to fixed image. "
         "Can be 'same' if fixed image space is identical to the moving image "
         "space.",
@@ -39,40 +42,42 @@ def main():
         required=1,
     )
     parser.add_argument(
-        "--output",
+        "-o", "--output",
         help="Path to resampled image",
         type=str,
         required=1,
     )
     parser.add_argument(
-        "--transform",
+        "-t", "--transform",
         help="Path to (SimpleITK) transformation to be applied",
         type=str,
         required=0,
     )
     parser.add_argument(
-        "--interpolator",
-        help="Interpolator for image resampling",
+        "-i", "--interpolator",
+        help="Interpolator for image resampling. Can be either name (%s) "
+        "or order (0, 1)" % (
+            ", ".join(ALLOWED_INTERPOLATORS)),
         type=str,
         required=0,
-        default="linear",
+        default="Linear",
     )
     parser.add_argument(
-        "--padding",
+        "-p", "--padding",
         help="Padding value",
         type=int,
         required=0,
         default=0,
     )
     parser.add_argument(
-        "--spacing",
+        "-s", "--spacing",
         help="Set spacing for resampling grid in fixed image space",
         nargs="+",
         type=float,
         default=None,
     )
     parser.add_argument(
-        "--add-to-grid",
+        "-atg", "--add-to-grid",
         help="Additional grid extension/reduction in each direction of each "
         "axis in millimeter. If scalar, changes are applied uniformly to grid",
         nargs="+",
@@ -80,7 +85,7 @@ def main():
         default=None,
     )
     parser.add_argument(
-        "--verbose",
+        "-v", "--verbose",
         help="Turn on/off verbose output",
         type=int,
         required=0,
@@ -90,6 +95,19 @@ def main():
 
     if args.fixed == "same":
         args.fixed = args.moving
+
+    if args.interpolator.isdigit():
+        if int(args.interpolator) == 0:
+            interpolator_sitk = sitk.sitkNearestNeighbor
+        elif int(args.interpolator) == 1:
+            interpolator_sitk = sitk.sitkLinear
+        else:
+            raise IOError("Interpolator order not known")
+    else:
+        if args.interpolator in ALLOWED_INTERPOLATORS:
+            interpolator_sitk = "sitk.sitk%s" % args.interpolator
+        else:
+            raise IOError("Interpolator not known.")
 
     # read input
     fixed_sitk = sitk.ReadImage(args.fixed)
@@ -110,7 +128,7 @@ def main():
         moving_sitk,
         size,
         transform_sitk,
-        getattr(sitk, "sitk%s" % args.interpolator.title()),
+        interpolator_sitk,
         origin,
         spacing,
         direction,

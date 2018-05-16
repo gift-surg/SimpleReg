@@ -27,19 +27,19 @@ def main():
         epilog="Author: Michael Ebner (michael.ebner.14@ucl.ac.uk)",
     )
     parser.add_argument(
-        "--filename",
+        "-f", "--filename",
         help="Path to multi-label mask",
         type=str,
         required=1,
     )
     parser.add_argument(
-        "--output",
+        "-o", "--output",
         help="Path to output 4D image",
         type=str,
         required=1,
     )
     parser.add_argument(
-        "--verbose",
+        "-v", "--verbose",
         help="Turn on/off verbose output",
         type=int,
         required=0,
@@ -49,7 +49,7 @@ def main():
 
     labels_sitk = sitk.ReadImage(args.filename)
 
-    nda = sitk.GetArrayFromImage(labels_sitk).astype(np.uint8)
+    nda = sitk.GetArrayFromImage(labels_sitk).astype(np.uint8int8)
     n_labels = int(np.max(nda))
 
     # split labels into separate components

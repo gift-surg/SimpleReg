@@ -19,26 +19,26 @@ def main():
         epilog="Author: Michael Ebner (michael.ebner.14@ucl.ac.uk)",
     )
     parser.add_argument(
-        "--filename",
+        "-f", "--filename",
         help="Path to fiducial image mask",
         type=str,
         required=1,
     )
     parser.add_argument(
-        "--output",
+        "-o", "--output",
         help="Path to obtained landmarks (.txt)",
         type=str,
         required=1,
     )
     parser.add_argument(
-        "--verbose",
+        "-v", "--verbose",
         help="Turn on/off verbose output",
         type=int,
         required=0,
         default=0,
     )
     parser.add_argument(
-        "--clusters",
+        "-c", "--clusters",
         help="Number of clusters, i.e. number of expected landmarks.",
         type=int,
         required=0,

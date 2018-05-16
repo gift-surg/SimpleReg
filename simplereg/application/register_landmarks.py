@@ -18,25 +18,25 @@ def main():
         epilog="Author: Michael Ebner (michael.ebner.14@ucl.ac.uk)",
     )
     parser.add_argument(
-        "--fixed",
+        "-f", "--fixed",
         help="Path to fixed image landmarks.",
         type=str,
         required=1,
     )
     parser.add_argument(
-        "--moving",
+        "-m", "--moving",
         help="Path to moving image landmarks.",
         type=str,
         required=1,
     )
     parser.add_argument(
-        "--output",
+        "-o", "--output",
         help="Path for obtained SimpleITK registration transform (.txt)",
         type=str,
         required=1,
     )
     parser.add_argument(
-        "--verbose",
+        "-v", "--verbose",
         help="Turn on/off verbose output",
         type=int,
         required=0,
