@@ -11,14 +11,13 @@ import simplereg.utilities as utils
 
 ALLOWED_INTERPOLATORS = ["Linear", "NearestNeighbour", "BSpline"]
 
+
 ##
 # Apply SimpleITK transform to image
 # \date       2018-04-25 11:50:08-0600
 #
 # \return     exit code
 #
-
-
 def main():
 
     # Read input
