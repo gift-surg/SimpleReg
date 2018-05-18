@@ -59,13 +59,15 @@ def main():
 
     if args.transform is not None:
         is_inverse = False
+        path_to_transform = args.transform
     else:
         is_inverse = True
+        path_to_transform = args.transform_inv
 
     # read input
     image_sitk = sitk.ReadImage(args.filename)
     transform_sitk = sitkh.read_transform_sitk(
-        args.transform, inverse=is_inverse)
+        path_to_transform, inverse=is_inverse)
 
     # transform image
     transformed_image_sitk = sitkh.get_transformed_sitk_image(
