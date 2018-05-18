@@ -22,31 +22,31 @@ def main():
         epilog="Author: Michael Ebner (michael.ebner.14@ucl.ac.uk)",
     )
     parser.add_argument(
-        "--filename",
-        help="Path to filename",
+        "-f", "--filename",
+        help="Path to image",
         type=str,
         required=1,
     )
     parser.add_argument(
-        "--output",
-        help="Path to output",
+        "-o", "--output",
+        help="Path to output image",
         type=str,
         required=1,
     )
     parser.add_argument(
-        "--transform",
+        "-t", "--transform",
         help="Path to (SimpleITK) transformation to be applied",
         type=str,
         required=0,
     )
     parser.add_argument(
-        "--transform-inv",
+        "-tinv", "--transform-inv",
         help="Path to inverse (SimpleITK) transformation to be applied",
         type=str,
         required=0,
     )
     parser.add_argument(
-        "--verbose",
+        "-v", "--verbose",
         help="Turn on/off verbose output",
         type=int,
         required=0,
