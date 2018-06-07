@@ -38,7 +38,7 @@ class LandmarkRegistrationTest(unittest.TestCase):
             cmd_args = ["python %s" % exe]
             cmd_args.append("--output %s" % path_to_result)
             cmd_args.append("--filename %s" % path_to_image_fiducials)
-            cmd_args.append("--clusters 4")
+            # cmd_args.append("--clusters 4")
             cmd_args.append("--verbose %s" % self.verbose)
             cmd = " ".join(cmd_args)
             flag = ph.execute_command(cmd, verbose=self.verbose)
@@ -47,6 +47,12 @@ class LandmarkRegistrationTest(unittest.TestCase):
 
             result = np.loadtxt(path_to_result)
             reference = np.loadtxt(path_to_reference)
+
+            # Find closest point
+            indices = [
+                np.argmin(np.linalg.norm(result[i, :] - reference, axis=1))
+                for i in range(result.shape[0])]
+            reference = [reference[i, :] for i in indices]
 
             self.assertAlmostEqual(
                 np.sum(np.abs(result - reference)), 0, places=self.precision)

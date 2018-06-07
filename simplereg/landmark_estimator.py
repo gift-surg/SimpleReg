@@ -9,8 +9,8 @@
 import os
 import numpy as np
 import scipy.ndimage
-import sklearn.cluster
 import SimpleITK as sitk
+import skimage.measure
 
 import pysitk.python_helper as ph
 import pysitk.simple_itk_helper as sitkh
@@ -22,9 +22,8 @@ import pysitk.simple_itk_helper as sitkh
 #
 class LandmarkEstimator(object):
 
-    def __init__(self, path_to_image_mask, n_clusters, verbose=1):
+    def __init__(self, path_to_image_mask, verbose=1):
         self._path_to_image_mask = path_to_image_mask
-        self._n_clusters = n_clusters
         self._verbose = verbose
 
         self._landmarks_image_space = None
@@ -67,35 +66,31 @@ class LandmarkEstimator(object):
         image_mask_sitk = sitk.ReadImage(self._path_to_image_mask)
         image_mask_nda = sitk.GetArrayFromImage(image_mask_sitk)
 
-        # focus on segmented regions only
-        labels = np.array(np.where(image_mask_nda > 0))
-
-        # run K-Means algorithm to extract centroids to define landmarks
-        labels = np.array([
-            np.array([labels[0, i], labels[1, i], labels[2, i]])
-            for i in range(labels.shape[1])])
-        kmeans = sklearn.cluster.KMeans(
-            n_clusters=self._n_clusters,
-            random_state=0,
-        ).fit(labels)
+        # separate into connected regions
+        labels_nda = skimage.measure.label(image_mask_nda)
+        n_landmarks = labels_nda.max()
 
         # get landmark coordinates in (continuous) voxel space
-        self._landmarks_voxel_space = np.array(kmeans.cluster_centers_)
+        self._landmarks_voxel_space = np.zeros(
+            (n_landmarks, image_mask_sitk.GetDimension()))
+        for i in range(n_landmarks):
+            points = np.array(np.where(labels_nda == i + 1))
+            self._landmarks_voxel_space[i, :] = np.mean(points, axis=1)
 
         # sitk -> nda stores as z, y, x
         self._landmarks_voxel_space = self._landmarks_voxel_space[:, ::-1]
 
         # get landmark coordinates in image space
-        self._landmarks_image_space = np.zeros(
-            (self._n_clusters, image_mask_sitk.GetDimension()))
-
-        for i in range(self._n_clusters):
+        self._landmarks_image_space = np.zeros_like(
+            self._landmarks_voxel_space)
+        for i in range(n_landmarks):
             self._landmarks_image_space[i, :] = \
                 image_mask_sitk.TransformContinuousIndexToPhysicalPoint(
                 self._landmarks_voxel_space[i, :])
 
         if self._verbose:
-            ph.print_info("Landmarks in voxel space (first index is 0): ")
+            ph.print_info(
+                "Landmarks in voxel space (integer; first index is 0): ")
             print(self._landmarks_voxel_space.astype(int))
 
             ph.print_info("Landmarks in image space: ")

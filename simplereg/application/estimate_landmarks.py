@@ -13,8 +13,7 @@ def main():
     # Read input
     parser = argparse.ArgumentParser(
         description="Estimate landmarks from image mask. "
-        "K-Means algorithm is used to estimate centroids from "
-        "labeled regions. ",
+        "Centroids define the landmark position within each labeled region.",
         prog=None,
         epilog="Author: Michael Ebner (michael.ebner.14@ucl.ac.uk)",
     )
@@ -38,23 +37,15 @@ def main():
         default=0,
     )
     parser.add_argument(
-        "-c", "--clusters",
-        help="Number of clusters, i.e. number of expected landmarks.",
-        type=int,
-        required=0,
-        default=3,
-    )
-    parser.add_argument(
         "--save-to-image",
-        help="Save obtained landmarks to image",
-        type=int,
-        default=0,
+        help="Save obtained landmarks to image (.nii.gz)",
+        type=str,
+        default=None,
     )
     args = parser.parse_args()
 
     landmark_estimator = le.LandmarkEstimator(
         path_to_image_mask=args.filename,
-        n_clusters=args.clusters,
         verbose=args.verbose,
     )
     landmark_estimator.run()
@@ -62,10 +53,8 @@ def main():
     ph.write_array_to_file(
         args.output, landmarks, access_mode="w", verbose=args.verbose)
 
-    if args.save_to_image:
-        path_to_image = "%s.nii.gz" % \
-            ph.strip_filename_extension(args.output)[0]
-        landmark_estimator.save_landmarks_to_image(path_to_image)
+    if args.save_to_image is not None:
+        landmark_estimator.save_landmarks_to_image(args.save_to_image)
 
     return 0
 
