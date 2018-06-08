@@ -27,13 +27,13 @@ def main():
         "-f", "--filename",
         help="Path to image (.nii.gz) or landmarks (.txt)",
         type=str,
-        required=1,
+        required=0,
     )
     parser.add_argument(
         "-o", "--output",
         help="Path to output image (.nii.gz) or transformed landmarks (.txt)",
         type=str,
-        required=1,
+        required=0,
     )
     parser.add_argument(
         "-t", "--transform",
@@ -44,8 +44,9 @@ def main():
     )
     parser.add_argument(
         "-tinv", "--transform-inv",
-        help="Path to inverse (SimpleITK) transformation to be applied",
-        type=str,
+        help="Turn on/off inversion of provided transform",
+        type=int,
+        default=0,
         required=0,
     )
     parser.add_argument(
@@ -55,68 +56,77 @@ def main():
         required=0,
         default=0,
     )
+    parser.add_argument(
+        "--swap-sitk-nreg",
+        help="Swap SimpleITK and NiftyReg representation",
+        type=str,
+        nargs="+",
+        required=0,
+        default=None,
+    )
     args = parser.parse_args()
 
-    if args.transform is None and args.transform_inv is None:
-        raise IOError("Either --transform or --transform-inv must be set")
-
-    type_transform = ph.strip_filename_extension(args.transform)[1]
-    type_filename = ph.strip_filename_extension(args.filename)[1]
-
-    if args.transform is not None:
-        is_inverse = False
-        path_to_transform = args.transform
-    else:
-        is_inverse = True
-        path_to_transform = args.transform_inv
-
-    if type_transform in ["nii", "nii.gz"]:
-        is_displacement = True
-    else:
-        is_displacement = False
-
-    if type_filename in ["nii", "nii.gz"]:
-        is_landmarks = False
-    else:
-        is_landmarks = True
-
-    if is_displacement and not is_landmarks:
-        raise IOError(
-            "Use simplereg_resample to get warped image from displacement"
-            "field.")
-
-    if is_displacement:
-        displacement_sitk = sitk.ReadImage(args.transform)
-        transform_sitk = sitk.DisplacementFieldTransform(
-            sitk.Image(displacement_sitk))
-        if is_inverse:
-            displacement_sitk = transform_sitk.GetInverseDisplacementField()
-            transform_sitk = sitk.DisplacementFieldTransform(
-                sitk.Image(displacement_sitk))
-    else:
-        transform_sitk = sitkh.read_transform_sitk(
-            path_to_transform, inverse=is_inverse)
-
-    if is_landmarks:
-        landmarks_nda = np.loadtxt(args.filename)
-        transformed_landmarks_nda = np.zeros_like(landmarks_nda)
-        for i in range(landmarks_nda.shape[0]):
-            transformed_landmarks_nda[i, :] = transform_sitk.TransformPoint(
-                landmarks_nda[i, :])
+    # HACK: Refactor to get cleaner interface for all transform applications
+    if args.swap_sitk_nreg is not None:
+        landmarks_nda = np.loadtxt(args.swap_sitk_nreg[0])
+        landmarks_nda[:, 0:2] *= -1
         ph.write_array_to_file(
-            args.output,
-            transformed_landmarks_nda,
+            args.swap_sitk_nreg[1],
+            landmarks_nda,
+            delimiter=" ",
             access_mode="w",
             verbose=args.verbose)
-
     else:
-        image_sitk = sitk.ReadImage(args.filename)
+        type_transform = ph.strip_filename_extension(args.transform)[1]
+        type_filename = ph.strip_filename_extension(args.filename)[1]
 
-        # transform image
-        transformed_image_sitk = sitkh.get_transformed_sitk_image(
-            image_sitk, transform_sitk)
-        sitkh.write_nifti_image_sitk(
-            transformed_image_sitk, args.output, verbose=args.verbose)
+        if type_transform in ["nii", "nii.gz"]:
+            is_displacement = True
+        else:
+            is_displacement = False
+
+        if type_filename in ["nii", "nii.gz"]:
+            is_landmarks = False
+        else:
+            is_landmarks = True
+
+        if is_displacement and not is_landmarks:
+            raise IOError(
+                "Use simplereg_resample to get warped image from displacement"
+                "field.")
+
+        if is_displacement:
+            displacement_sitk = sitk.ReadImage(args.transform)
+            transform_sitk = sitk.DisplacementFieldTransform(
+                sitk.Image(displacement_sitk))
+            if args.transform_inv:
+                # TODO: Always seems to throw error
+                transform_sitk = transform_sitk.GetInverse()
+        else:
+            transform_sitk = sitkh.read_transform_sitk(
+                args.transform, inverse=args.transform_inv)
+
+        if is_landmarks:
+            landmarks_nda = np.loadtxt(args.filename)
+            transformed_landmarks_nda = np.zeros_like(landmarks_nda)
+            for i in range(landmarks_nda.shape[0]):
+                transformed_landmarks_nda[i, :] = transform_sitk.TransformPoint(
+                    landmarks_nda[i, :])
+            ph.write_array_to_file(
+                args.output,
+                transformed_landmarks_nda,
+                delimiter=" ",
+                access_mode="w",
+                verbose=args.verbose)
+
+        else:
+            image_sitk = sitk.ReadImage(args.filename)
+
+            # transform image
+            transformed_image_sitk = sitkh.get_transformed_sitk_image(
+                image_sitk, transform_sitk)
+            sitkh.write_nifti_image_sitk(
+                transformed_image_sitk, args.output, verbose=args.verbose)
 
     return 0
 
