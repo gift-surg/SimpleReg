@@ -48,7 +48,8 @@ def main():
     )
     parser.add_argument(
         "-t", "--transform",
-        help="Path to (SimpleITK) transformation to be applied",
+        help="Path to (SimpleITK) transformation (.txt) or displacement "
+        "field (.nii.gz) to be applied",
         type=str,
         required=0,
     )
@@ -112,7 +113,13 @@ def main():
     fixed_sitk = sitk.ReadImage(args.fixed)
     moving_sitk = sitk.ReadImage(args.moving)
     if args.transform:
-        transform_sitk = sitkh.read_transform_sitk(args.transform)
+        type_transform = ph.strip_filename_extension(args.transform)[1]
+        if type_transform in ["nii", "nii.gz"]:
+            displacement_sitk = sitk.ReadImage(args.transform)
+            transform_sitk = sitk.DisplacementFieldTransform(
+                sitk.Image(displacement_sitk))
+        else:
+            transform_sitk = sitkh.read_transform_sitk(args.transform)
     else:
         transform_sitk = getattr(
             sitk, "Euler%dDTransform" % fixed_sitk.GetDimension())()
