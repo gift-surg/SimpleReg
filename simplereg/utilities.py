@@ -5,11 +5,15 @@
 # \date       April 2018
 #
 
+import os
 import numpy as np
+import nibabel as nib
 import SimpleITK as sitk
 
 import pysitk.python_helper as ph
+import pysitk.simple_itk_helper as sitkh
 
+from simplereg.definitions import DIR_TMP
 
 ##
 # Compute fiducial registration error (FRE) between fixed and warped moving
@@ -23,6 +27,8 @@ import pysitk.python_helper as ph
 #
 # \return     FRE as scalar value
 #
+
+
 def fiducial_registration_error(reference_nda, estimate_nda):
     if not isinstance(reference_nda, np.ndarray):
         raise IOError("Fixed points must be of type np.array")
@@ -248,3 +254,45 @@ def get_resampled_image_sitk(
     )
 
     return resampled_image_sitk
+
+
+def convert_sitk_to_nib_image(image_sitk):
+
+    # Read
+    # nda = sitk.GetArrayFromImage(image_sitk)
+    # nda = np.swapaxes(nda, axis1=0, axis2=image_sitk.GetDimension() - 1)
+
+    # nda_nib = np.zeros(shape_nib, dtype=nda_sitk.dtype)
+
+    # DIR_TMP = "/tmp/"
+    path_to_file = os.path.join(DIR_TMP, "tmp.nii.gz")
+    sitkh.write_nifti_image_sitk(image_sitk, path_to_file)
+    # sitk.WriteImage(image_sitk, path_to_file)
+
+    image_nib = nib.load(path_to_file)
+    return image_nib
+
+
+def get_niftyreg_jacobian_determinant_from_displacement_sitk(
+        displacement_sitk):
+
+    path_to_disp = os.path.join(DIR_TMP, "disp.nii.gz")
+    path_to_jac = os.path.join(DIR_TMP, "disp_jac.nii.gz")
+
+    displacement_nib = convert_sitk_to_nib_image(displacement_sitk)
+    displacement_nib.header['intent_p1'] = 1
+    nib.save(displacement_nib, path_to_disp)
+
+    # sitkh.write_nifti_image_sitk(displacement_sitk, path_to_disp)
+    # cmd_args = ["fslmodhd"]
+    # cmd_args.append(path_to_disp)
+    # cmd_args.append("intent_p1 1")
+    # ph.execute_command(" ".join(cmd_args))
+
+    cmd_args = ["reg_jacobian"]
+    cmd_args.append("-trans %s" % path_to_disp)
+    cmd_args.append("-jac %s" % path_to_jac)
+    ph.execute_command(" ".join(cmd_args))
+
+    det_jac_sitk = sitk.ReadImage(path_to_jac)
+    return det_jac_sitk
