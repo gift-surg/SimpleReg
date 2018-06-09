@@ -9,3 +9,8 @@ DIR_TEST = os.path.join(DIR_DATA, "tests")
 
 # OMP threads used for NiftyReg by default
 OMP = 8
+
+ALLOWED_IMAGES = ["nii.gz", "nii"]
+ALLOWED_TRANSFORMS = ["txt"]
+ALLOWED_TRANSFORMS_DISPLACEMENTS = ["nii.gz", "nii"]
+ALLOWED_LANDMARKS = ["txt"]

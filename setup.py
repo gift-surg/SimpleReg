@@ -51,11 +51,7 @@ setup(name='SimpleReg',
           'console_scripts': [
               'simplereg_transform = simplereg.application.transform:main',
               'simplereg_resample = simplereg.application.resample:main',
-              'simplereg_invert_transform = simplereg.application.invert_transform:main',
-              'simplereg_convert_regaladin_to_sitk_transform = simplereg.application.convert_regaladin_to_sitk_transform:main',
-              'simplereg_convert_sitk_to_regaladin_transform = simplereg.application.convert_sitk_to_regaladin_transform:main',
               'simplereg_register_landmarks = simplereg.application.register_landmarks:main',
-              'simplereg_estimate_landmarks = simplereg.application.estimate_landmarks:main',
           ],
       },
       )

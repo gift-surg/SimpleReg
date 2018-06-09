@@ -5,10 +5,13 @@
 # \date       April 2018
 #
 
+import os
 import numpy as np
+import nibabel as nib
 import SimpleITK as sitk
 
 import pysitk.python_helper as ph
+import pysitk.simple_itk_helper as sitkh
 
 
 ##
@@ -248,3 +251,58 @@ def get_resampled_image_sitk(
     )
 
     return resampled_image_sitk
+
+
+##
+# Update image header of sitk.Image
+# \date       2018-06-09 13:42:20-0600
+#
+# \param      image_sitk      sitk.Image object
+# \param      transform_sitk  sitk.Transform
+#
+# \return     sitk.Image with updated image header
+#
+def update_image_header(image_sitk, transform_sitk):
+    transformed_image_sitk = sitkh.get_transformed_sitk_image(
+        image_sitk, transform_sitk)
+    return transformed_image_sitk
+
+
+##
+# Split multi-label mask into 4D (or 5D) image where each time point
+# corresponds to an independent mask label
+# \date       2018-06-09 13:51:34-0600
+#
+# \param      path_to_labels  Path to multi-label mask
+# \param      dimension       Dimension of output mask. Either 4 or 5.
+# \param      path_to_output  Path to 4D/5D output multi-label mask
+#
+def split_labels(path_to_labels, dimension, path_to_output):
+    if dimension == 4:
+        labels_nib = nib.load(path_to_labels)
+        nda = labels_nib.get_data().astype(np.uint8)
+    else:
+        labels_sitk = sitk.ReadImage(path_to_labels)
+        nda = sitk.GetArrayFromImage(labels_sitk).astype(np.uint8)
+
+    # split labels into separate components
+    n_labels = nda.max()
+    shape = nda.shape + (n_labels, )
+    nda_4d = np.zeros((shape), dtype=np.uint8)
+    for label in range(n_labels):
+        indices = np.where(nda == label + 1)
+        indices += (label * np.ones(len(indices[0]), dtype=np.uint8),)
+        nda_4d[indices] = 1
+
+    if dimension == 4:
+        labels_4d_nib = nib.Nifti1Image(
+            nda_4d, affine=labels_nib.affine, header=labels_nib.header)
+        labels_4d_nib.set_data_dtype(np.uint8)
+        ph.create_directory(os.path.dirname(path_to_output))
+        nib.save(labels_4d_nib, path_to_output)
+    else:
+        labels_5d_sitk = sitk.GetImageFromArray(nda_4d)
+        labels_5d_sitk.SetOrigin(labels_sitk.GetOrigin())
+        labels_5d_sitk.SetSpacing(labels_sitk.GetSpacing())
+        labels_5d_sitk.SetDirection(labels_sitk.GetDirection())
+        sitkh.write_nifti_image_sitk(labels_5d_sitk, path_to_output)
