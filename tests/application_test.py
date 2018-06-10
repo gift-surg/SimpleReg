@@ -27,6 +27,7 @@ class ApplicationTest(unittest.TestCase):
 
         self.image_2D = os.path.join(DIR_DATA, "2D_Brain_Target.nii.gz")
         self.image_3D = os.path.join(DIR_DATA, "3D_Brain_Target.nii.gz")
+        self.image_3D_moving = os.path.join(DIR_DATA, "3D_Brain_Source.nii.gz")
 
         self.transform_2D_sitk = os.path.join(
             DIR_TEST, "2D_sitk_Target_Source.txt")
@@ -37,6 +38,9 @@ class ApplicationTest(unittest.TestCase):
             DIR_TEST, "2D_regaladin_Target_Source.txt")
         self.transform_3D_nreg = os.path.join(
             DIR_TEST, "3D_regaladin_Target_Source.txt")
+
+        self.transform_3D_flirt = os.path.join(
+            DIR_TEST, "3D_flirt_Target_Source.txt")
 
         self.landmarks_3D = os.path.join(
             DIR_TEST, "3D_Brain_Template_landmarks.txt")
@@ -65,7 +69,7 @@ class ApplicationTest(unittest.TestCase):
         ref_nda = np.array(transform_sitk.GetInverse().GetParameters())
         res_nda = np.array(transform_inv_sitk.GetParameters())
         self.assertAlmostEqual(
-            np.linalg.norm(ref_nda - ref_nda), 0, places=self.precision)
+            np.linalg.norm(ref_nda - res_nda), 0, places=self.precision)
 
     def test_transform_landmarks(self):
         cmd_args = ["simplereg_transform"]
@@ -82,7 +86,7 @@ class ApplicationTest(unittest.TestCase):
         res_nda = dr.DataReader.read_transform_nreg(self.output_transform)
         ref_nda = dr.DataReader.read_transform_nreg(self.transform_3D_nreg)
         self.assertAlmostEqual(
-            np.linalg.norm(ref_nda - ref_nda), 0, places=self.precision)
+            np.linalg.norm(ref_nda - res_nda), 0, places=self.precision)
 
     def test_transform_nreg_to_sitk(self):
         cmd_args = ["simplereg_transform"]
@@ -95,9 +99,39 @@ class ApplicationTest(unittest.TestCase):
         res_nda = np.array(res_sitk.GetParameters())
         ref_nda = np.array(ref_sitk.GetParameters())
         self.assertAlmostEqual(
-            np.linalg.norm(ref_nda - ref_nda), 0, places=self.precision)
+            np.linalg.norm(ref_nda - res_nda), 0, places=self.precision)
 
-    def test_transform_nreg_to_sitk(self):
+    def test_transform_flirt_to_sitk(self):
+        cmd_args = ["simplereg_transform"]
+        cmd_args.append("-flirt2sitk %s %s %s %s" % (
+            self.transform_3D_flirt,
+            self.image_3D,
+            self.image_3D_moving,
+            self.output_transform))
+        self.assertEqual(ph.execute_command(" ".join(cmd_args)), 0)
+
+        res_sitk = dr.DataReader.read_transform(self.output_transform)
+        ref_sitk = dr.DataReader.read_transform(self.transform_3D_sitk)
+        res_nda = np.array(res_sitk.GetParameters())
+        ref_nda = np.array(ref_sitk.GetParameters())
+        self.assertAlmostEqual(
+            np.linalg.norm(ref_nda - res_nda), 0, places=2)
+
+    def test_transform_sitk_to_flirt(self):
+        cmd_args = ["simplereg_transform"]
+        cmd_args.append("-sitk2flirt %s %s %s %s" % (
+            self.transform_3D_sitk,
+            self.image_3D,
+            self.image_3D_moving,
+            self.output_transform))
+        self.assertEqual(ph.execute_command(" ".join(cmd_args)), 0)
+
+        res_nda = dr.DataReader.read_transform_flirt(self.output_transform)
+        ref_nda = dr.DataReader.read_transform_flirt(self.transform_3D_flirt)
+        self.assertAlmostEqual(
+            np.linalg.norm(ref_nda - res_nda), 0, places=self.precision)
+
+    def test_transform_swap_sitk_nii(self):
         cmd_args = ["simplereg_transform"]
         cmd_args.append("-sitk2nii %s %s" % (
             self.landmarks_3D, self.output_landmarks))
@@ -105,9 +139,9 @@ class ApplicationTest(unittest.TestCase):
 
         res_nda = dr.DataReader.read_landmarks(self.output_landmarks)
         ref_nda = dr.DataReader.read_landmarks(self.landmarks_3D)
-        ref_nda[:,0:2] *= -1
+        ref_nda[:, 0:2] *= -1
         self.assertAlmostEqual(
-            np.linalg.norm(ref_nda - ref_nda), 0, places=self.precision)
+            np.linalg.norm(ref_nda - res_nda), 0, places=self.precision)
 
     # TODO
     def test_transform_split_labels(self):
@@ -116,4 +150,3 @@ class ApplicationTest(unittest.TestCase):
     # TODO
     def test_transform_mask_to_landmark(self):
         pass
-

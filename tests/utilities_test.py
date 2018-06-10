@@ -41,7 +41,7 @@ class UtilitiesTest(unittest.TestCase):
                 np.sum(np.abs(nda - nda_reference)), 0,
                 places=self.precision)
 
-    def test_convert_sitk_to_regaladin_transofrm(self):
+    def test_convert_sitk_to_regaladin_transform(self):
         for dim in [2, 3]:
             path_to_sitk_transform = os.path.join(
                 DIR_TEST, "%dD_sitk_Target_Source.txt" % dim)
@@ -57,6 +57,58 @@ class UtilitiesTest(unittest.TestCase):
             self.assertAlmostEqual(
                 np.sum(np.abs(nda - nda_reference)), 0,
                 places=self.precision)
+
+    def test_convert_sitk_to_flirt_transform(self):
+        for dim in [3]:
+            path_to_sitk_transform = os.path.join(
+                DIR_TEST, "%dD_sitk_Target_Source.txt" % dim)
+            path_to_fixed = os.path.join(
+                DIR_DATA, "%dD_Brain_Target.nii.gz" % dim)
+            path_to_moving = os.path.join(
+                DIR_DATA, "%dD_Brain_Source.nii.gz" % dim)
+            path_to_res = os.path.join(
+                DIR_TMP, "%dD_sitk2flirt_target_Source.txt" % dim)
+            path_to_reference_transform = os.path.join(
+                DIR_TEST, "%dD_flirt_Target_Source.txt" % dim)
+
+            utils.convert_sitk_to_flirt_transform(
+                path_to_sitk_transform, path_to_fixed, path_to_moving, path_to_res)
+            nda = np.loadtxt(path_to_res)
+
+            nda_reference = np.loadtxt(
+                path_to_reference_transform)
+
+            self.assertAlmostEqual(
+                np.sum(np.abs(nda - nda_reference)), 0,
+                places=self.precision)
+
+    def test_convert_flirt_to_sitk_transform(self):
+        for dim in [3]:
+            path_to_flirt_transform = os.path.join(
+                DIR_TEST, "%dD_flirt_Target_Source.txt" % dim)
+            path_to_fixed = os.path.join(
+                DIR_DATA, "%dD_Brain_Target.nii.gz" % dim)
+            path_to_moving = os.path.join(
+                DIR_DATA, "%dD_Brain_Source.nii.gz" % dim)
+            path_to_res = os.path.join(
+                DIR_TMP, "%dD_flirt2sitk_target_Source_.txt" % dim)
+            path_to_reference_transform = os.path.join(
+                DIR_TEST, "%dD_sitk_Target_Source.txt" % dim)
+
+            utils.convert_flirt_to_sitk_transform(
+                path_to_flirt_transform, path_to_fixed, path_to_moving, path_to_res)
+            transform_sitk = sitkh.read_transform_sitk(path_to_res)
+
+            transform_ref_sitk = sitkh.read_transform_sitk(
+                path_to_reference_transform)
+
+            nda_reference = np.array(transform_ref_sitk.GetParameters())
+            nda = np.array(transform_sitk.GetParameters())
+
+            # Conversion to FLIRT only provides 4 decimal places
+            self.assertAlmostEqual(
+                np.sum(np.abs(nda - nda_reference)), 0,
+                places=2)
 
     def test_get_resampling_space_properties(self):
         for dim in [2, 3]:

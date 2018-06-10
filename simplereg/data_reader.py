@@ -88,3 +88,18 @@ class DataReader(object):
                 ", or ".join(ALLOWED_TRANSFORMS))
 
         return np.loadtxt(path_to_file)
+
+    @staticmethod
+    def read_transform_flirt(path_to_file):
+
+        if not ph.file_exists(path_to_file):
+            raise IOError("FLIRT transform file '%s' not found" %
+                          path_to_file)
+
+        extension = ph.strip_filename_extension(path_to_file)[1]
+        if extension not in ALLOWED_TRANSFORMS:
+            raise IOError(
+                "FLIRT transform file extension must be of type %s" %
+                ", or ".join(ALLOWED_TRANSFORMS))
+
+        return np.loadtxt(path_to_file)

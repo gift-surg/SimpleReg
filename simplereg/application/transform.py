@@ -33,21 +33,21 @@ def main():
     )
     parser.add_argument(
         "-i", "--image-header",
-        help="Update image header given a SimpleITK transform",
+        help="Update image header given a (Simple)ITK transform",
         nargs=3,
         metavar=("IMAGE", "TRANSFORM", "OUTPUT_IMAGE"),
         default=None,
     )
     parser.add_argument(
         "-inv", "--invert-transform",
-        help="Invert a SimpleITK transform",
+        help="Invert a (Simple)ITK transform",
         nargs=2,
         metavar=("TRANSFORM", "OUTPUT_TRANSFORM"),
         default=None,
     )
     parser.add_argument(
         "-l", "--landmark",
-        help="Apply SimpleITK transform (or displacement field) to landmarks. "
+        help="Apply (Simple)ITK transform (or displacement field) to landmarks. "
         "Landmarks are encoded in a text file with one landmark position in "
         "mm per line j: "
         "<key_j_x> <key_j_y> (<key_j_z>)",
@@ -57,7 +57,7 @@ def main():
     )
     parser.add_argument(
         "-sitk2nreg", "--sitk-to-nreg",
-        help="Convert SimpleITK to NiftyReg transform representation.",
+        help="Convert (Simple)ITK to NiftyReg transform representation.",
         metavar=("SIMPLEITK", "OUTPUT_NIFTYREG"),
         type=str,
         nargs=2,
@@ -65,16 +65,36 @@ def main():
     )
     parser.add_argument(
         "-nreg2sitk", "--nreg-to-sitk",
-        help="Convert NiftyReg to SimpleITK transform representation.",
+        help="Convert NiftyReg to (Simple)ITK transform representation.",
         metavar=("NIFTYREG", "OUTPUT_SIMPLEITK"),
         type=str,
         nargs=2,
         default=None,
     )
     parser.add_argument(
+        "-flirt2sitk", "--flirt-to-sitk",
+        help="Convert FLIRT to (Simple)ITK transform representation "
+        "(3D only). "
+        "Fixed and moving images need to be provided. ",
+        metavar=("FLIRT", "FIXED", "MOVING", "OUTPUT_SIMPLEITK"),
+        type=str,
+        nargs=4,
+        default=None,
+    )
+    parser.add_argument(
+        "-sitk2flirt", "--sitk-to-flirt",
+        help="Convert (Simple)ITK to FLIRT transform representation "
+        "(3D only). "
+        "Fixed and moving images need to be provided.",
+        metavar=("SIMPLEITK", "FIXED", "MOVING", "OUTPUT_FLIRT"),
+        type=str,
+        nargs=4,
+        default=None,
+    )
+    parser.add_argument(
         "-sitk2nii", "--swap-sitk-nii",
-        help="Swap representation of points/landmarks between SimpleITK and "
-        "NIfTI coordinate systems (x maps_to -x, y maps_to -y in SimpleITK). "
+        help="Swap representation of points/landmarks between (Simple)ITK and "
+        "NIfTI coordinate systems (x maps_to -x, y maps_to -y in ITK). "
         "In particular, NiftyReg uses NIfTI representation.",
         metavar=("SITK/NII", "OUTPUT_NII/SITK"),
         type=str,
@@ -142,6 +162,22 @@ def main():
         transform_sitk = utils.convert_regaladin_to_sitk_transform(matrix_nda)
         dw.DataWriter.write_transform(
             transform_sitk, args.nreg_to_sitk[1], args.verbose)
+
+    if args.flirt_to_sitk is not None:
+        utils.convert_flirt_to_sitk_transform(
+            args.flirt_to_sitk[0],
+            args.flirt_to_sitk[1],
+            args.flirt_to_sitk[2],
+            args.flirt_to_sitk[3],
+        )
+
+    if args.sitk_to_flirt is not None:
+        utils.convert_sitk_to_flirt_transform(
+            args.sitk_to_flirt[0],
+            args.sitk_to_flirt[1],
+            args.sitk_to_flirt[2],
+            args.sitk_to_flirt[3],
+        )
 
     if args.swap_sitk_nii is not None:
         landmarks_nda = dr.DataReader.read_landmarks(args.swap_sitk_nii[0])
