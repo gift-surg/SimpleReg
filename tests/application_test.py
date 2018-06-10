@@ -51,13 +51,13 @@ class ApplicationTest(unittest.TestCase):
 
     def test_transform_image(self):
 
-        cmd_args = ["simplereg_transform"]
+        cmd_args = ["python simplereg_transform.py"]
         cmd_args.append("-i %s %s %s" % (
             self.image_3D, self.transform_3D_sitk, self.output_image))
         self.assertEqual(ph.execute_command(" ".join(cmd_args)), 0)
 
     def test_transform_invert_transform(self):
-        cmd_args = ["simplereg_transform"]
+        cmd_args = ["python simplereg_transform.py"]
         cmd_args.append("-inv %s %s" % (
             self.transform_3D_sitk, self.output_transform))
         self.assertEqual(ph.execute_command(" ".join(cmd_args)), 0)
@@ -72,13 +72,13 @@ class ApplicationTest(unittest.TestCase):
             np.linalg.norm(ref_nda - res_nda), 0, places=self.precision)
 
     def test_transform_landmarks(self):
-        cmd_args = ["simplereg_transform"]
+        cmd_args = ["python simplereg_transform.py"]
         cmd_args.append("-l %s %s %s" % (
             self.landmarks_3D, self.transform_3D_sitk, self.output_landmarks))
         self.assertEqual(ph.execute_command(" ".join(cmd_args)), 0)
 
     def test_transform_sitk_to_nreg(self):
-        cmd_args = ["simplereg_transform"]
+        cmd_args = ["python simplereg_transform.py"]
         cmd_args.append("-sitk2nreg %s %s" % (
             self.transform_3D_sitk, self.output_transform))
         self.assertEqual(ph.execute_command(" ".join(cmd_args)), 0)
@@ -89,7 +89,7 @@ class ApplicationTest(unittest.TestCase):
             np.linalg.norm(ref_nda - res_nda), 0, places=self.precision)
 
     def test_transform_nreg_to_sitk(self):
-        cmd_args = ["simplereg_transform"]
+        cmd_args = ["python simplereg_transform.py"]
         cmd_args.append("-nreg2sitk %s %s" % (
             self.transform_3D_nreg, self.output_transform))
         self.assertEqual(ph.execute_command(" ".join(cmd_args)), 0)
@@ -102,7 +102,7 @@ class ApplicationTest(unittest.TestCase):
             np.linalg.norm(ref_nda - res_nda), 0, places=self.precision)
 
     def test_transform_flirt_to_sitk(self):
-        cmd_args = ["simplereg_transform"]
+        cmd_args = ["python simplereg_transform.py"]
         cmd_args.append("-flirt2sitk %s %s %s %s" % (
             self.transform_3D_flirt,
             self.image_3D,
@@ -118,7 +118,7 @@ class ApplicationTest(unittest.TestCase):
             np.linalg.norm(ref_nda - res_nda), 0, places=2)
 
     def test_transform_sitk_to_flirt(self):
-        cmd_args = ["simplereg_transform"]
+        cmd_args = ["python simplereg_transform.py"]
         cmd_args.append("-sitk2flirt %s %s %s %s" % (
             self.transform_3D_sitk,
             self.image_3D,
@@ -132,7 +132,7 @@ class ApplicationTest(unittest.TestCase):
             np.linalg.norm(ref_nda - res_nda), 0, places=self.precision)
 
     def test_transform_swap_sitk_nii(self):
-        cmd_args = ["simplereg_transform"]
+        cmd_args = ["python simplereg_transform.py"]
         cmd_args.append("-sitk2nii %s %s" % (
             self.landmarks_3D, self.output_landmarks))
         self.assertEqual(ph.execute_command(" ".join(cmd_args)), 0)

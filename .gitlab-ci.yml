@@ -54,10 +54,6 @@ before_script:
     # run installation
     - pip install .
 
-    # refresh installation
-    - deactivate
-    - source ${venv_dir}/bin/activate
-
 after_script:
     # delete tmp-directory
     - rm -rfv ${TMPDIR}
