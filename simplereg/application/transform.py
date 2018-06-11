@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
+
 import os
 import argparse
 import numpy as np
@@ -8,9 +11,14 @@ import SimpleITK as sitk
 import pysitk.python_helper as ph
 import pysitk.simple_itk_helper as sitkh
 
+import simplereg.data_reader as dr
+import simplereg.data_writer as dw
+import simplereg.utilities as utils
+import simplereg.landmark_estimator as le
+
 
 ##
-# Apply SimpleITK transform to image or landmarks
+# Tools for various transformation and conversion tasks
 # \date       2018-04-25 11:50:08-0600
 #
 # \return     exit code
@@ -19,114 +27,179 @@ def main():
 
     # Read input
     parser = argparse.ArgumentParser(
-        description="Apply SimpleITK transform to image or landmarks.",
+        description="Tools for various transformation and conversion tasks.",
         prog=None,
         epilog="Author: Michael Ebner (michael.ebner.14@ucl.ac.uk)",
     )
     parser.add_argument(
-        "-f", "--filename",
-        help="Path to image (.nii.gz) or landmarks (.txt)",
-        type=str,
-        required=0,
+        "-i", "--image-header",
+        help="Update image header given a (Simple)ITK transform",
+        nargs=3,
+        metavar=("IMAGE", "TRANSFORM", "OUTPUT_IMAGE"),
+        default=None,
     )
     parser.add_argument(
-        "-o", "--output",
-        help="Path to output image (.nii.gz) or transformed landmarks (.txt)",
-        type=str,
-        required=0,
+        "-inv", "--invert-transform",
+        help="Invert a (Simple)ITK transform",
+        nargs=2,
+        metavar=("TRANSFORM", "OUTPUT_TRANSFORM"),
+        default=None,
     )
     parser.add_argument(
-        "-t", "--transform",
-        help="Path to (SimpleITK) transformation (.txt) or displacement "
-        "field (.nii.gz)",
-        type=str,
-        required=0,
+        "-l", "--landmark",
+        help="Apply (Simple)ITK transform (or displacement field) to landmarks. "
+        "Landmarks are encoded in a text file with one landmark position in "
+        "mm per line j: "
+        "<key_j_x> <key_j_y> (<key_j_z>)",
+        nargs=3,
+        metavar=("LANDMARKS", "TRANSFORM", "OUTPUT_LANDMARKS"),
+        default=None,
     )
     parser.add_argument(
-        "-tinv", "--transform-inv",
-        help="Turn on/off inversion of provided transform",
-        type=int,
-        default=0,
-        required=0,
+        "-sitk2nreg", "--sitk-to-nreg",
+        help="Convert (Simple)ITK to NiftyReg transform representation.",
+        metavar=("SIMPLEITK", "OUTPUT_NIFTYREG"),
+        type=str,
+        nargs=2,
+        default=None,
+    )
+    parser.add_argument(
+        "-nreg2sitk", "--nreg-to-sitk",
+        help="Convert NiftyReg to (Simple)ITK transform representation.",
+        metavar=("NIFTYREG", "OUTPUT_SIMPLEITK"),
+        type=str,
+        nargs=2,
+        default=None,
+    )
+    parser.add_argument(
+        "-flirt2sitk", "--flirt-to-sitk",
+        help="Convert FLIRT to (Simple)ITK transform representation "
+        "(3D only). "
+        "Fixed and moving images need to be provided. ",
+        metavar=("FLIRT", "FIXED", "MOVING", "OUTPUT_SIMPLEITK"),
+        type=str,
+        nargs=4,
+        default=None,
+    )
+    parser.add_argument(
+        "-sitk2flirt", "--sitk-to-flirt",
+        help="Convert (Simple)ITK to FLIRT transform representation "
+        "(3D only). "
+        "Fixed and moving images need to be provided.",
+        metavar=("SIMPLEITK", "FIXED", "MOVING", "OUTPUT_FLIRT"),
+        type=str,
+        nargs=4,
+        default=None,
+    )
+    parser.add_argument(
+        "-sitk2nii", "--swap-sitk-nii",
+        help="Swap representation of points/landmarks between (Simple)ITK and "
+        "NIfTI coordinate systems (x maps_to -x, y maps_to -y in ITK). "
+        "In particular, NiftyReg uses NIfTI representation.",
+        metavar=("SITK/NII", "OUTPUT_NII/SITK"),
+        type=str,
+        nargs=2,
+        default=None,
+    )
+    parser.add_argument(
+        "-split", "--split-labels",
+        help="Split multi-label mask into 4D (or 5D) image where each "
+        "time point corresponds to an independent mask label",
+        metavar=("LABELS", "DIM", "OUTPUT_LABELS"),
+        type=str,
+        nargs=3,
+        default=None,
+    )
+    parser.add_argument(
+        "-mask2land", "--mask-to-landmark",
+        help="Compute landmarks representing the centroids of each connected "
+        "mask region",
+        metavar=("MASK", "OUTPUT_LANDMARKS"),
+        type=str,
+        nargs=2,
+        default=None,
     )
     parser.add_argument(
         "-v", "--verbose",
         help="Turn on/off verbose output",
         type=int,
-        required=0,
         default=0,
-    )
-    parser.add_argument(
-        "--swap-sitk-nreg",
-        help="Swap SimpleITK and NiftyReg representation",
-        type=str,
-        nargs="+",
-        required=0,
-        default=None,
     )
     args = parser.parse_args()
 
-    # HACK: Refactor to get cleaner interface for all transform applications
-    if args.swap_sitk_nreg is not None:
-        landmarks_nda = np.loadtxt(args.swap_sitk_nreg[0])
+    if args.image_header is not None:
+        image_sitk = dr.DataReader.read_image(args.image_header[0])
+        transform_sitk = dr.DataReader.read_transform(args.image_header[1])
+        transformed_image_sitk = utils.update_image_header(
+            image_sitk, transform_sitk)
+        dw.DataWriter.write_image(
+            transformed_image_sitk, args.image_header[2], args.verbose)
+
+    if args.invert_transform is not None:
+        transform_inv_sitk = dr.DataReader.read_transform(
+            args.invert_transform[0], inverse=1)
+        dw.DataWriter.write_transform(
+            transform_inv_sitk, args.invert_transform[1], args.verbose)
+
+    if args.landmark is not None:
+        landmarks_nda = dr.DataReader.read_landmarks(args.landmark[0])
+        transform_sitk = dr.DataReader.read_transform(args.landmark[1])
+        for i in range(landmarks_nda.shape[0]):
+            landmarks_nda[i, :] = transform_sitk.TransformPoint(
+                landmarks_nda[i, :])
+        dw.DataWriter.write_landmarks(
+            landmarks_nda, args.landmark[2], args.verbose)
+
+    if args.sitk_to_nreg is not None:
+        transform_sitk = dr.DataReader.read_transform(args.sitk_to_nreg[0])
+        matrix_nda = utils.convert_sitk_to_regaladin_transform(transform_sitk)
+        dw.DataWriter.write_transform_nreg(
+            matrix_nda, args.sitk_to_nreg[1], args.verbose)
+
+    if args.nreg_to_sitk is not None:
+        matrix_nda = dr.DataReader.read_transform_nreg(
+            args.nreg_to_sitk[0])
+        transform_sitk = utils.convert_regaladin_to_sitk_transform(matrix_nda)
+        dw.DataWriter.write_transform(
+            transform_sitk, args.nreg_to_sitk[1], args.verbose)
+
+    if args.flirt_to_sitk is not None:
+        utils.convert_flirt_to_sitk_transform(
+            args.flirt_to_sitk[0],
+            args.flirt_to_sitk[1],
+            args.flirt_to_sitk[2],
+            args.flirt_to_sitk[3],
+        )
+
+    if args.sitk_to_flirt is not None:
+        utils.convert_sitk_to_flirt_transform(
+            args.sitk_to_flirt[0],
+            args.sitk_to_flirt[1],
+            args.sitk_to_flirt[2],
+            args.sitk_to_flirt[3],
+        )
+
+    if args.swap_sitk_nii is not None:
+        landmarks_nda = dr.DataReader.read_landmarks(args.swap_sitk_nii[0])
         landmarks_nda[:, 0:2] *= -1
-        ph.write_array_to_file(
-            args.swap_sitk_nreg[1],
-            landmarks_nda,
-            delimiter=" ",
-            access_mode="w",
-            verbose=args.verbose)
-    else:
-        type_transform = ph.strip_filename_extension(args.transform)[1]
-        type_filename = ph.strip_filename_extension(args.filename)[1]
+        dw.DataWriter.write_landmarks(
+            landmarks_nda, args.swap_sitk_nii[1], args.verbose)
 
-        if type_transform in ["nii", "nii.gz"]:
-            is_displacement = True
-        else:
-            is_displacement = False
+    if args.split_labels is not None:
+        dim = int(args.split_labels[1])
+        if dim != 4 and dim != 5:
+            raise IOError("Output dimension can either be 4D or 5D")
+        utils.split_labels(args.split_labels[0], dim, args.split_labels[2])
 
-        if type_filename in ["nii", "nii.gz"]:
-            is_landmarks = False
-        else:
-            is_landmarks = True
-
-        if is_displacement and not is_landmarks:
-            raise IOError(
-                "Use simplereg_resample to get warped image from displacement"
-                "field.")
-
-        if is_displacement:
-            displacement_sitk = sitk.ReadImage(args.transform)
-            transform_sitk = sitk.DisplacementFieldTransform(
-                sitk.Image(displacement_sitk))
-            if args.transform_inv:
-                # TODO: Always seems to throw error
-                transform_sitk = transform_sitk.GetInverse()
-        else:
-            transform_sitk = sitkh.read_transform_sitk(
-                args.transform, inverse=args.transform_inv)
-
-        if is_landmarks:
-            landmarks_nda = np.loadtxt(args.filename)
-            transformed_landmarks_nda = np.zeros_like(landmarks_nda)
-            for i in range(landmarks_nda.shape[0]):
-                transformed_landmarks_nda[i, :] = transform_sitk.TransformPoint(
-                    landmarks_nda[i, :])
-            ph.write_array_to_file(
-                args.output,
-                transformed_landmarks_nda,
-                delimiter=" ",
-                access_mode="w",
-                verbose=args.verbose)
-
-        else:
-            image_sitk = sitk.ReadImage(args.filename)
-
-            # transform image
-            transformed_image_sitk = sitkh.get_transformed_sitk_image(
-                image_sitk, transform_sitk)
-            sitkh.write_nifti_image_sitk(
-                transformed_image_sitk, args.output, verbose=args.verbose)
+    if args.mask_to_landmark is not None:
+        landmark_estimator = le.LandmarkEstimator(
+            path_to_image_mask=args.mask_to_landmark[0],
+            verbose=args.verbose,
+        )
+        landmark_estimator.run()
+        landmarks_nda = landmark_estimator.get_landmarks()
+        dw.DataWriter.write_landmarks(
+            landmarks_nda, args.mask_to_landmark[1], args.verbose)
 
     return 0
 

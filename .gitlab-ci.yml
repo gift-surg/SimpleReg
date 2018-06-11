@@ -75,3 +75,11 @@ installation:
     - python -m nose tests/installation_test.py
   tags:
     - gift-adelie
+
+applications:
+  # only:
+  #   - master
+  script:
+    - python -m nose tests/application_test.py
+  tags:
+    - gift-adelie
