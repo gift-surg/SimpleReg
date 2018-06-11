@@ -78,16 +78,22 @@ class DataReader(object):
     def read_transform_nreg(path_to_file):
 
         if not ph.file_exists(path_to_file):
-            raise IOError("RegAladin transform file '%s' not found" %
+            raise IOError("NiftyReg transform file '%s' not found" %
                           path_to_file)
 
         extension = ph.strip_filename_extension(path_to_file)[1]
-        if extension not in ALLOWED_TRANSFORMS:
-            raise IOError(
-                "RegAladin transform file extension must be of type %s" %
-                ", or ".join(ALLOWED_TRANSFORMS))
+        if extension not in ALLOWED_TRANSFORMS and \
+                extension not in ALLOWED_TRANSFORMS_DISPLACEMENTS:
+            raise IOError("NiftyReg transform file extension must be of type "
+                          "%s (reg_aladin) or %s (reg_f3d displacement)" % (
+                              ", ".join(ALLOWED_TRANSFORMS),
+                              ", ".join(ALLOWED_TRANSFORMS_DISPLACEMENTS)))
+        if extension in ALLOWED_TRANSFORMS:
+            transform_nreg = np.loadtxt(path_to_file)
+        else:
+            transform_nreg = sitk.ReadImage(path_to_file)
 
-        return np.loadtxt(path_to_file)
+        return transform_nreg
 
     @staticmethod
     def read_transform_flirt(path_to_file):

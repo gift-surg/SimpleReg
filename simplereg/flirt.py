@@ -20,7 +20,8 @@ import pysitk.simple_itk_helper as sitkh
 import simplereg.utilities as utils
 from simplereg.definitions import DIR_TMP
 from simplereg.wrapper_registration import WrapperRegistration
-
+from simplereg.flirt_to_simpleitk_converter import \
+    FlirtToSimpleItkConverter as flirt2sitk
 
 class FLIRT(WrapperRegistration):
 
@@ -111,7 +112,7 @@ class FLIRT(WrapperRegistration):
     #
     def _convert_to_sitk_transform(self):
 
-        utils.convert_flirt_to_sitk_transform(
+        flirt2sitk.convert_flirt_to_sitk_transform(
             self._registration_transform_str,
             self._fixed_str,
             self._moving_str,

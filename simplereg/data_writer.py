@@ -74,7 +74,7 @@ class DataWriter(object):
                               ))
 
             sitkh.write_nifti_image_sitk(
-                image_sitk=image_sitk,
+                image_sitk=transform_sitk,
                 path_to_file=path_to_file,
                 verbose=verbose)
 

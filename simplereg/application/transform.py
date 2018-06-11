@@ -15,6 +15,10 @@ import simplereg.data_reader as dr
 import simplereg.data_writer as dw
 import simplereg.utilities as utils
 import simplereg.landmark_estimator as le
+from simplereg.niftyreg_to_simpleitk_converter import \
+    NiftyRegToSimpleItkConverter as nreg2sitk
+from simplereg.flirt_to_simpleitk_converter import \
+    FlirtToSimpleItkConverter as flirt2sitk
 
 
 ##
@@ -152,19 +156,20 @@ def main():
 
     if args.sitk_to_nreg is not None:
         transform_sitk = dr.DataReader.read_transform(args.sitk_to_nreg[0])
-        matrix_nda = utils.convert_sitk_to_regaladin_transform(transform_sitk)
+        matrix_nda = nreg2sitk.convert_sitk_to_nreg_transform(transform_sitk)
         dw.DataWriter.write_transform_nreg(
             matrix_nda, args.sitk_to_nreg[1], args.verbose)
 
     if args.nreg_to_sitk is not None:
-        matrix_nda = dr.DataReader.read_transform_nreg(
+        transform_nreg = dr.DataReader.read_transform_nreg(
             args.nreg_to_sitk[0])
-        transform_sitk = utils.convert_regaladin_to_sitk_transform(matrix_nda)
+        transform_sitk = nreg2sitk.convert_nreg_to_sitk_transform(
+            transform_nreg)
         dw.DataWriter.write_transform(
             transform_sitk, args.nreg_to_sitk[1], args.verbose)
 
     if args.flirt_to_sitk is not None:
-        utils.convert_flirt_to_sitk_transform(
+        flirt2sitk.convert_flirt_to_sitk_transform(
             args.flirt_to_sitk[0],
             args.flirt_to_sitk[1],
             args.flirt_to_sitk[2],
@@ -172,7 +177,7 @@ def main():
         )
 
     if args.sitk_to_flirt is not None:
-        utils.convert_sitk_to_flirt_transform(
+        flirt2sitk.convert_sitk_to_flirt_transform(
             args.sitk_to_flirt[0],
             args.sitk_to_flirt[1],
             args.sitk_to_flirt[2],

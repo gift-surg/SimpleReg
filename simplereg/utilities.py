@@ -9,12 +9,12 @@ import os
 import numpy as np
 import nibabel as nib
 import SimpleITK as sitk
-import nipype.interfaces.c3
 
 import pysitk.python_helper as ph
 import pysitk.simple_itk_helper as sitkh
 
 from simplereg.definitions import DIR_TMP
+
 
 ##
 # Compute fiducial registration error (FRE) between fixed and warped moving
@@ -28,8 +28,6 @@ from simplereg.definitions import DIR_TMP
 #
 # \return     FRE as scalar value
 #
-
-
 def fiducial_registration_error(reference_nda, estimate_nda):
     if not isinstance(reference_nda, np.ndarray):
         raise IOError("Fixed points must be of type np.array")
@@ -52,150 +50,6 @@ def fiducial_registration_error(reference_nda, estimate_nda):
     FRE = np.square(np.sum(np.square(reference_nda - estimate_nda)) / N)
 
     return FRE
-
-
-##
-# Convert a NiftyReg-RegAladin affine transformation matrix into a SimpleITK
-# transform
-# \date       2018-04-25 21:40:05-0600
-#
-# \param      matrix  affine matrix as np.ndarray
-#
-# \return     Affine transformation of type sitk.AffineTransform
-#
-def convert_regaladin_to_sitk_transform(matrix):
-
-    if not isinstance(matrix, np.ndarray):
-        raise IOError("matrix must be a np.ndarray")
-
-    if matrix.shape != (4, 4):
-        raise IOError("matrix array must be of shape (4, 4)")
-
-    if np.sum(np.abs(matrix[-1, :] - np.array([0, 0, 0, 1]))):
-        raise IOError("last row of matrix must be [0, 0, 0, 1]")
-
-    # retrieve dimension
-    nda_2D = np.array([[0, 0, 1, 0], [0, 0, 0, 1]])
-    if np.sum(np.abs(matrix[2:, 0:] - nda_2D)) < 1e-6:
-        dim = 2
-    else:
-        dim = 3
-
-    # retrieve (dim x dim) matrix and translation
-    A = matrix[0:dim, 0:dim]
-    t = matrix[0:dim, -1]
-
-    # Convert to SimpleITK physical coordinate system
-    R = np.eye(dim)
-    R[0, 0] = -1
-    R[1, 1] = -1
-    A = R.dot(A).dot(R)
-    t = R.dot(t)
-
-    # Convert to affine transform
-    # (Note, it is not possible to extract a EulerxDTransform even for
-    # rigid reg_aladin trafos: 'Error: Attempt to set a Non-Orthogonal matrix';
-    # QR decomposition could work, but initial tests showed that np.linalg.qr
-    # and scipy.linalg.qr (can) return a matrix R with negative diagonal
-    # values)
-    transform_sitk = sitk.AffineTransform(A.flatten(), t)
-
-    return transform_sitk
-
-
-##
-# Convert SimpleITK Transform into a NiftyReg-RegAladin affine matrix
-# \date       2018-04-25 21:41:08-0600
-#
-# \param      transform_sitk  transformation as sitk.Transform
-#
-# \return     NiftyReg-RegAladin transformation as (4 x 4)-np.array
-#
-def convert_sitk_to_regaladin_transform(transform_sitk):
-
-    if not isinstance(transform_sitk, sitk.Transform):
-        raise IOError("Input must be a sitk.Transform")
-
-    dim = transform_sitk.GetDimension()
-    A_sitk = np.array(transform_sitk.GetMatrix()).reshape(dim, dim)
-    t_sitk = np.array(transform_sitk.GetTranslation())
-
-    # Convert to physical coordinate system
-    A = np.eye(4)
-    R = np.eye(dim)
-
-    R[0, 0] = -1
-    R[1, 1] = -1
-    A[0:dim, 0:dim] = R.dot(A_sitk).dot(R)
-    A[0:dim, 3] = R.dot(t_sitk)
-
-    return A
-
-
-##
-# Convert FLIRT to SimpleITK transform
-# \date       2018-06-10 16:09:56-0600
-#
-# \param      path_to_flirt_mat       Path to FLIRT matrix
-# \param      path_to_fixed           Path to fixed image used by FLIRT (-ref)
-# \param      path_to_moving          Path to moving image used by FLIRT (-src)
-# \param      path_to_sitk_transform  Path to output SimpleITK transform
-# \param      verbose                 Turn on/off verbose output
-#
-def convert_flirt_to_sitk_transform(
-        path_to_flirt_mat,
-        path_to_fixed,
-        path_to_moving,
-        path_to_sitk_transform,
-        verbose=0,
-):
-
-    ph.create_directory(os.path.dirname(path_to_sitk_transform))
-
-    c3d = nipype.interfaces.c3.C3dAffineTool()
-    c3d.inputs.reference_file = path_to_fixed
-    c3d.inputs.source_file = path_to_moving
-    c3d.inputs.transform_file = path_to_flirt_mat
-    c3d.inputs.fsl2ras = True
-    c3d.inputs.itk_transform = path_to_sitk_transform
-
-    if verbose:
-        ph.print_execution(c3d.cmdline)
-    c3d.run()
-
-
-##
-# Convert SimpleITK to FLIRT transform
-#
-# Remark: Conversion to FLIRT only provides 4 decimal places
-# \date       2018-06-10 16:09:56-0600
-#
-# \param      path_to_sitk_transform  Path to SimpleITK transform
-# \param      path_to_fixed           Path to fixed image used for registration
-# \param      path_to_moving          Path to moving image used for reg.
-# \param      path_to_flirt_mat       Path to output FLIRT matrix
-# \param      verbose                 Turn on/off verbose output
-#
-def convert_sitk_to_flirt_transform(
-        path_to_sitk_transform,
-        path_to_fixed,
-        path_to_moving,
-        path_to_flirt_mat,
-        verbose=0,
-):
-
-    ph.create_directory(os.path.dirname(path_to_flirt_mat))
-
-    c3d = nipype.interfaces.c3.C3dAffineTool()
-    c3d.inputs.reference_file = path_to_fixed
-    c3d.inputs.source_file = path_to_moving
-
-    # position of -ras2fsl matters!!
-    c3d.inputs.args = "-itk %s -ras2fsl -o %s" % (
-        path_to_sitk_transform, path_to_flirt_mat)
-    if verbose:
-        ph.print_execution(c3d.cmdline)
-    c3d.run()
 
 
 ##
@@ -376,45 +230,3 @@ def split_labels(path_to_labels, dimension, path_to_output):
         labels_5d_sitk.SetSpacing(labels_sitk.GetSpacing())
         labels_5d_sitk.SetDirection(labels_sitk.GetDirection())
         sitkh.write_nifti_image_sitk(labels_5d_sitk, path_to_output)
-
-
-def convert_sitk_to_nib_image(image_sitk):
-
-    # Read
-    # nda = sitk.GetArrayFromImage(image_sitk)
-    # nda = np.swapaxes(nda, axis1=0, axis2=image_sitk.GetDimension() - 1)
-
-    # nda_nib = np.zeros(shape_nib, dtype=nda_sitk.dtype)
-
-    # DIR_TMP = "/tmp/"
-    path_to_file = os.path.join(DIR_TMP, "tmp.nii.gz")
-    sitkh.write_nifti_image_sitk(image_sitk, path_to_file)
-    # sitk.WriteImage(image_sitk, path_to_file)
-
-    image_nib = nib.load(path_to_file)
-    return image_nib
-
-
-def get_niftyreg_jacobian_determinant_from_displacement_sitk(
-        displacement_sitk):
-
-    path_to_disp = os.path.join(DIR_TMP, "disp.nii.gz")
-    path_to_jac = os.path.join(DIR_TMP, "disp_jac.nii.gz")
-
-    displacement_nib = convert_sitk_to_nib_image(displacement_sitk)
-    displacement_nib.header['intent_p1'] = 1
-    nib.save(displacement_nib, path_to_disp)
-
-    # sitkh.write_nifti_image_sitk(displacement_sitk, path_to_disp)
-    # cmd_args = ["fslmodhd"]
-    # cmd_args.append(path_to_disp)
-    # cmd_args.append("intent_p1 1")
-    # ph.execute_command(" ".join(cmd_args))
-
-    cmd_args = ["reg_jacobian"]
-    cmd_args.append("-trans %s" % path_to_disp)
-    cmd_args.append("-jac %s" % path_to_jac)
-    ph.execute_command(" ".join(cmd_args))
-
-    det_jac_sitk = sitk.ReadImage(path_to_jac)
-    return det_jac_sitk
