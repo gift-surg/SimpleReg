@@ -119,8 +119,6 @@ def main():
         if type_transform in ["nii", "nii.gz"]:
             displacement_sitk = sitk.ReadImage(
                 args.transform, sitk.sitkVectorFloat64)
-            displacement_sitk = nreg2sitk.convert_nreg_to_sitk_displacement(
-                displacement_sitk)
             transform_sitk = sitk.DisplacementFieldTransform(
                 sitk.Image(displacement_sitk))
         else:
