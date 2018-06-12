@@ -163,7 +163,7 @@ class RegAladin(NiftyReg):
     def _convert_to_sitk_transform(self):
 
         matrix = np.loadtxt(self._registration_transform_str)
-        registration_transform_sitk = nreg2sitk.convert_nreg_to_sitk_transform(
+        registration_transform_sitk = nreg2sitk.convert_regaladin_to_sitk_transform(
             matrix)
 
         return registration_transform_sitk

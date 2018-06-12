@@ -13,6 +13,9 @@ import SimpleITK as sitk
 import pysitk.python_helper as ph
 import pysitk.simple_itk_helper as sitkh
 
+import simplereg.data_reader as dr
+import simplereg.data_writer as dw
+
 
 ##
 # Class to convert between NiftyReg and SimpleITK representations
@@ -29,43 +32,28 @@ class NiftyRegToSimpleItkConverter(object):
     # \return     Affine transformation of type sitk.AffineTransform
     #
     @staticmethod
-    def convert_nreg_to_sitk_transform(transform_nreg):
+    def convert_nreg_to_sitk_transform(
+            path_to_transform_nreg,
+            path_to_output,
+            verbose=0
+    ):
+
+        transform_nreg = dr.DataReader.read_transform_nreg(
+            path_to_transform_nreg)
 
         if isinstance(transform_nreg, np.ndarray):
-            if transform_nreg.shape != (4, 4):
-                raise IOError("matrix array must be of shape (4, 4)")
-
-            if np.sum(np.abs(transform_nreg[-1, :] - np.array([0, 0, 0, 1]))):
-                raise IOError("last row of matrix must be [0, 0, 0, 1]")
-
-            # retrieve dimension
-            nda_2D = np.array([[0, 0, 1, 0], [0, 0, 0, 1]])
-            if np.sum(np.abs(transform_nreg[2:, 0:] - nda_2D)) < 1e-6:
-                dim = 2
-            else:
-                dim = 3
-
-            # retrieve (dim x dim) matrix and translation
-            A = transform_nreg[0:dim, 0:dim]
-            t = transform_nreg[0:dim, -1]
-
-            # Convert to SimpleITK physical coordinate system
-            R = np.eye(dim)
-            R[0, 0] = -1
-            R[1, 1] = -1
-            A = R.dot(A).dot(R)
-            t = R.dot(t)
-
-            # Convert to affine transform
-            # (Note, it is not possible to extract a EulerxDTransform even for
-            # rigid reg_aladin trafos: 'Error: Attempt to set a Non-Orthogonal matrix';
-            # QR decomposition could work, but initial tests showed that np.linalg.qr
-            # and scipy.linalg.qr (can) return a matrix R with negative diagonal
-            # values)
-            transform_sitk = sitk.AffineTransform(A.flatten(), t)
+            transform_sitk = NiftyRegToSimpleItkConverter.\
+                convert_regaladin_to_sitk_transform(
+                    transform_nreg)
+            dw.DataWriter.write_transform(
+                transform_sitk, path_to_output, verbose)
 
         elif isinstance(transform_nreg, sitk.Image):
-            transform_sitk = convert_nreg_to_sitk_displacement(transform_nreg)
+            transform_sitk = NiftyRegToSimpleItkConverter.\
+                convert_regf3d_to_sitk_displacement(
+                    transform_nreg)
+            dw.DataWriter.write_transform(
+                transform_sitk, path_to_output, verbose)
 
         else:
             raise IOError(
@@ -84,33 +72,84 @@ class NiftyRegToSimpleItkConverter(object):
     # \return     NiftyReg-RegAladin transformation as (4 x 4)-np.array
     #
     @staticmethod
-    def convert_sitk_to_nreg_transform(transform_sitk):
+    def convert_sitk_to_nreg_transform(
+            path_to_transform_sitk,
+            path_to_output,
+            verbose=0,
+    ):
+
+        transform_sitk = dr.DataReader.read_transform(path_to_transform_sitk)
 
         if isinstance(transform_sitk, sitk.Transform):
-            dim = transform_sitk.GetDimension()
-            A_sitk = np.array(transform_sitk.GetMatrix()).reshape(dim, dim)
-            t_sitk = np.array(transform_sitk.GetTranslation())
-
-            # Convert to physical coordinate system
-            transform_nreg = np.eye(4)
-            R = np.eye(dim)
-
-            R[0, 0] = -1
-            R[1, 1] = -1
-            transform_nreg[0:dim, 0:dim] = R.dot(A_sitk).dot(R)
-            transform_nreg[0:dim, 3] = R.dot(t_sitk)
+            matrix_nda = NiftyRegToSimpleItkConverter.\
+                convert_sitk_to_regaladin_transform(
+                    transform_sitk)
+            dw.DataWriter.write_transform_nreg(
+                matrix_nda, path_to_output, verbose)
 
         elif isinstance(transform_sitk, sitk.Image):
-            transform_nreg = convert_nreg_to_sitk_displacement(transform_sitk)
+            transform_nreg = NiftyRegToSimpleItkConverter.\
+                convert_regf3d_to_sitk_displacement(transform_sitk)
 
         else:
             raise IOError("Input must be either a "
                           "sitk.Transform or sitk.Image (displacement)")
 
-        return transform_nreg
+    @staticmethod
+    def convert_sitk_to_regaladin_transform(transform_sitk):
+        dim = transform_sitk.GetDimension()
+        A_sitk = np.array(transform_sitk.GetMatrix()).reshape(dim, dim)
+        t_sitk = np.array(transform_sitk.GetTranslation())
+
+        # Convert to physical coordinate system
+        matrix_nda = np.eye(4)
+        R = np.eye(dim)
+
+        R[0, 0] = -1
+        R[1, 1] = -1
+        matrix_nda[0:dim, 0:dim] = R.dot(A_sitk).dot(R)
+        matrix_nda[0:dim, 3] = R.dot(t_sitk)
+
+        return matrix_nda
 
     @staticmethod
-    def convert_nreg_to_sitk_displacement(displacement_nreg_sitk):
+    def convert_regaladin_to_sitk_transform(matrix_nda):
+        if matrix_nda.shape != (4, 4):
+            raise IOError("matrix array must be of shape (4, 4)")
+
+        if np.sum(np.abs(matrix_nda[-1, :] - np.array([0, 0, 0, 1]))):
+            raise IOError("last row of matrix must be [0, 0, 0, 1]")
+
+        # retrieve dimension
+        nda_2D = np.array([[0, 0, 1, 0], [0, 0, 0, 1]])
+        if np.sum(np.abs(matrix_nda[2:, 0:] - nda_2D)) < 1e-6:
+            dim = 2
+        else:
+            dim = 3
+
+        # retrieve (dim x dim) matrix and translation
+        A = matrix_nda[0:dim, 0:dim]
+        t = matrix_nda[0:dim, -1]
+
+        # Convert to SimpleITK physical coordinate system
+        R = np.eye(dim)
+        R[0, 0] = -1
+        R[1, 1] = -1
+        A = R.dot(A).dot(R)
+        t = R.dot(t)
+
+        # Convert to affine transform
+        # (Note, it is not possible to extract a EulerxDTransform even for
+        # rigid reg_aladin trafos: 'Error: Attempt to set a Non-Orthogonal matrix';
+        # QR decomposition could work, but initial tests showed that np.linalg.qr
+        # and scipy.linalg.qr (can) return a matrix R with negative diagonal
+        # values)
+        transform_sitk = sitk.AffineTransform(A.flatten(), t)
+
+        return transform_sitk
+
+    @staticmethod
+    def convert_regf3d_to_sitk_displacement(displacement_nreg_sitk):
         nda = sitk.GetArrayFromImage(displacement_nreg_sitk)
         nda[..., 0:2] *= -1
 
@@ -119,7 +158,6 @@ class NiftyRegToSimpleItkConverter(object):
 
         return displacement_sitk
 
-    
     @staticmethod
     def get_niftyreg_jacobian_determinant_from_displacement_sitk(
             displacement_sitk):

@@ -172,18 +172,18 @@ def main():
             landmarks_nda, args.landmark[2], args.verbose)
 
     if args.sitk_to_nreg is not None:
-        transform_sitk = dr.DataReader.read_transform(args.sitk_to_nreg[0])
-        matrix_nda = nreg2sitk.convert_sitk_to_nreg_transform(transform_sitk)
-        dw.DataWriter.write_transform_nreg(
-            matrix_nda, args.sitk_to_nreg[1], args.verbose)
+        nreg2sitk.convert_sitk_to_nreg_transform(
+            args.sitk_to_nreg[0],
+            args.sitk_to_nreg[1],
+            args.verbose,
+        )
 
     if args.nreg_to_sitk is not None:
-        transform_nreg = dr.DataReader.read_transform_nreg(
-            args.nreg_to_sitk[0])
-        transform_sitk = nreg2sitk.convert_nreg_to_sitk_transform(
-            transform_nreg)
-        dw.DataWriter.write_transform(
-            transform_sitk, args.nreg_to_sitk[1], args.verbose)
+        nreg2sitk.convert_nreg_to_sitk_transform(
+            args.nreg_to_sitk[0],
+            args.nreg_to_sitk[1],
+            args.verbose,
+        )
 
     if args.flirt_to_sitk is not None:
         flirt2sitk.convert_flirt_to_sitk_transform(

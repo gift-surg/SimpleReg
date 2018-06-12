@@ -28,7 +28,7 @@ class UtilitiesTest(unittest.TestCase):
     def setUp(self):
         self.precision = 7
 
-    def test_convert_nreg_to_sitk_transform(self):
+    def test_convert_regaladin_to_sitk_transform(self):
         for dim in [2, 3]:
             path_to_regaladin_transform = os.path.join(
                 DIR_TEST, "%dD_regaladin_Target_Source.txt" % dim)
@@ -36,7 +36,7 @@ class UtilitiesTest(unittest.TestCase):
                 DIR_TEST, "%dD_sitk_Target_Source.txt" % dim)
 
             matrix_regaladin = np.loadtxt(path_to_regaladin_transform)
-            transform_sitk = nreg2sitk.convert_nreg_to_sitk_transform(
+            transform_sitk = nreg2sitk.convert_regaladin_to_sitk_transform(
                 matrix_regaladin)
             transform_reference_sitk = sitk.AffineTransform(
                 sitk.ReadTransform(path_to_sitk_reference_transform))
@@ -48,7 +48,7 @@ class UtilitiesTest(unittest.TestCase):
                 np.sum(np.abs(nda - nda_reference)), 0,
                 places=self.precision)
 
-    def test_convert_sitk_to_nreg_transform(self):
+    def test_convert_sitk_to_regaladin_transform(self):
         for dim in [2, 3]:
             path_to_sitk_transform = os.path.join(
                 DIR_TEST, "%dD_sitk_Target_Source.txt" % dim)
@@ -59,7 +59,7 @@ class UtilitiesTest(unittest.TestCase):
                 path_to_sitk_transform))
 
             nda_reference = np.loadtxt(path_to_reference_transform)
-            nda = nreg2sitk.convert_sitk_to_nreg_transform(transform_sitk)
+            nda = nreg2sitk.convert_sitk_to_regaladin_transform(transform_sitk)
 
             self.assertAlmostEqual(
                 np.sum(np.abs(nda - nda_reference)), 0,
