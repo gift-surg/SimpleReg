@@ -7,7 +7,7 @@ SimpleReg is a Python-based open-source toolkit that provides the interface to v
 * [FLIRT][fsl]
 * [ITK_NiftyMIC][itkniftymic] as an extension to [WrapITK][wrapitk]
 
-Please not that currently **only Python 2** is supported.
+Please note that currently **only Python 2** is supported.
 
 The algorithm and software were developed by [Michael Ebner][mebner] at the [Translational Imaging Group][tig] in the [Centre for Medical Image Computing][cmic] at [University College London (UCL)][ucl].
 
