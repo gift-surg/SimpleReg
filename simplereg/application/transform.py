@@ -15,6 +15,7 @@ import simplereg.data_reader as dr
 import simplereg.data_writer as dw
 import simplereg.utilities as utils
 import simplereg.landmark_estimator as le
+import simplereg.landmark_visualizer as lv
 from simplereg.niftyreg_to_simpleitk_converter import \
     NiftyRegToSimpleItkConverter as nreg2sitk
 from simplereg.flirt_to_simpleitk_converter import \
@@ -124,6 +125,22 @@ def main():
         default=None,
     )
     parser.add_argument(
+        "-land2mask", "--landmark-to-mask",
+        help="Convert landmark coordinates to image mask",
+        metavar=("LANDMARKS", "IMAGE", "OUTPUT_MASK"),
+        type=str,
+        nargs=3,
+        default=None,
+    )
+    parser.add_argument(
+        "-land2image", "--landmark-to-image",
+        help="Embed landmarks into image",
+        metavar=("LANDMARKS", "IMAGE", "OUTPUT_IMAGE"),
+        type=str,
+        nargs=3,
+        default=None,
+    )
+    parser.add_argument(
         "-v", "--verbose",
         help="Turn on/off verbose output",
         type=int,
@@ -205,6 +222,35 @@ def main():
         landmarks_nda = landmark_estimator.get_landmarks()
         dw.DataWriter.write_landmarks(
             landmarks_nda, args.mask_to_landmark[1], args.verbose)
+
+    if args.landmark_to_mask:
+        landmarks_nda = dr.DataReader.read_landmarks(args.landmark_to_mask[0])
+        image_sitk = dr.DataReader.read_image(args.landmark_to_mask[1])
+        landmark_visualizer = lv.LandmarkVisualizer(
+            landmarks_nda=landmarks_nda,
+            direction=image_sitk.GetDirection(),
+            origin=image_sitk.GetOrigin(),
+            spacing=image_sitk.GetSpacing(),
+            size=image_sitk.GetSize()
+        )
+        landmark_visualizer.build_landmark_image_sitk(pattern="sphere")
+        mask_sitk = landmark_visualizer.get_image_sitk()
+        dw.DataWriter.write_image(mask_sitk, args.landmark_to_mask[2])
+
+    if args.landmark_to_image:
+        landmarks_nda = dr.DataReader.read_landmarks(args.landmark_to_image[0])
+        image_sitk = dr.DataReader.read_image(args.landmark_to_image[1])
+        landmark_visualizer = lv.LandmarkVisualizer(
+            landmarks_nda=landmarks_nda,
+            direction=image_sitk.GetDirection(),
+            origin=image_sitk.GetOrigin(),
+            spacing=image_sitk.GetSpacing(),
+            size=image_sitk.GetSize()
+        )
+        landmark_visualizer.build_landmark_image_sitk(pattern="hollow_sphere")
+        image_sitk = landmark_visualizer.annotate_landmarks_on_image_sitk(
+            image_sitk)
+        dw.DataWriter.write_image(image_sitk, args.landmark_to_image[2])
 
     return 0
 

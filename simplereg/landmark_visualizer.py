@@ -34,8 +34,10 @@ class LandmarkVisualizer(object):
         self._landmark_image_sitk = None
 
         self._get_pattern = {
+            "hollow_sphere": self._get_pattern_hollow_sphere,
             "sphere": self._get_pattern_sphere,
             "cross": self._get_pattern_cross,
+            "plus": self._get_pattern_plus,
         }
 
     def set_landmarks_nda(self, landmarks_nda):
@@ -47,8 +49,8 @@ class LandmarkVisualizer(object):
     def get_image_nda(self):
         return np.array(self._landmark_image_nda)
 
-    def build_landmark_image_sitk(self, pattern="sphere"):
-        nda = np.zeros(self._size[::-1], dtype=int)
+    def build_landmark_image_sitk(self, pattern="plus"):
+        nda = np.zeros(self._size[::-1], dtype=np.uint8)
 
         foo = sitk.GetImageFromArray(nda)
         foo.SetSpacing(self._spacing)
@@ -85,14 +87,24 @@ class LandmarkVisualizer(object):
         return sitk.Image(image_landmarks_sitk)
 
     @staticmethod
-    def _get_pattern_sphere(radius, thickness=1):
-        a = radius + thickness
+    def _get_pattern_hollow_sphere(radius, thickness=1):
+        a = radius + np.ceil(thickness)
         x = np.linspace(-a, a, 2 * a + 1)
         xx, yy, zz = np.meshgrid(x, x, x)
         pattern = np.zeros_like(xx)
         values = xx**2 + yy**2 + zz**2
         pattern[values <= (radius + thickness)**2] = 1
         pattern[values < (radius - thickness)**2] = 0
+        return pattern
+
+    @staticmethod
+    def _get_pattern_sphere(radius, thickness=1):
+        a = radius + np.ceil(thickness)
+        x = np.linspace(-a, a, 2 * a + 1)
+        xx, yy, zz = np.meshgrid(x, x, x)
+        pattern = np.zeros_like(xx)
+        values = xx**2 + yy**2 + zz**2
+        pattern[values <= (radius + thickness)**2] = 1
         return pattern
 
     @staticmethod
@@ -106,6 +118,18 @@ class LandmarkVisualizer(object):
             pattern[i, i, n - i] = 1
             pattern[i, n - i, i] = 1
             pattern[i, n - i, n - i] = 1
+        return pattern
+
+    @staticmethod
+    def _get_pattern_plus(radius, thickness):
+        x = np.arange(2 * radius + 1)
+        xx, yy, zz = np.meshgrid(x, x, x)
+        pattern = np.zeros_like(xx)
+        n = pattern.shape[0] - 1
+        for i in range(n + 1):
+            pattern[i, radius, radius] = 1
+            pattern[radius, i, radius] = 1
+            pattern[radius, radius, i] = 1
         return pattern
 
     @staticmethod
