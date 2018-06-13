@@ -8,6 +8,7 @@
 import os
 import sys
 import numpy as np
+import nibabel as nib
 import SimpleITK as sitk
 
 import pysitk.python_helper as ph
@@ -23,14 +24,6 @@ import simplereg.data_writer as dw
 #
 class NiftyRegToSimpleItkConverter(object):
 
-    ##
-    # Convert a NiftyReg transformation into a SimpleITK transform
-    # \date       2018-04-25 21:40:05-0600
-    #
-    # \param      matrix  affine matrix as np.ndarray
-    #
-    # \return     Affine transformation of type sitk.AffineTransform
-    #
     @staticmethod
     def convert_nreg_to_sitk_transform(
             path_to_transform_nreg,
@@ -43,34 +36,18 @@ class NiftyRegToSimpleItkConverter(object):
 
         if isinstance(transform_nreg, np.ndarray):
             transform_sitk = NiftyRegToSimpleItkConverter.\
-                convert_regaladin_to_sitk_transform(
-                    transform_nreg)
-            dw.DataWriter.write_transform(
-                transform_sitk, path_to_output, verbose)
-
-        elif isinstance(transform_nreg, sitk.Image):
-            transform_sitk = NiftyRegToSimpleItkConverter.\
-                convert_regf3d_to_sitk_displacement(
-                    transform_nreg)
+                convert_regaladin_to_sitk_transform(transform_nreg)
             dw.DataWriter.write_transform(
                 transform_sitk, path_to_output, verbose)
 
         else:
-            raise IOError(
-                "Given transformation must be either "
-                "a np.ndarray (reg_aladin) "
-                "or a sitk.Image (reg_f3d displacement)")
+            transform_sitk = NiftyRegToSimpleItkConverter.\
+                convert_regf3d_to_sitk_displacement(transform_nreg)
+            dw.DataWriter.write_transform(
+                transform_sitk, path_to_output, verbose)
 
         return transform_sitk
 
-    ##
-    # Convert SimpleITK Transform into a NiftyReg-RegAladin affine matrix
-    # \date       2018-04-25 21:41:08-0600
-    #
-    # \param      transform_sitk  transformation as sitk.Transform
-    #
-    # \return     NiftyReg-RegAladin transformation as (4 x 4)-np.array
-    #
     @staticmethod
     def convert_sitk_to_nreg_transform(
             path_to_transform_sitk,
@@ -78,22 +55,20 @@ class NiftyRegToSimpleItkConverter(object):
             verbose=0,
     ):
 
-        transform_sitk = dr.DataReader.read_transform(path_to_transform_sitk)
+        transform_sitk = dr.DataReader.read_transform(
+            path_to_transform_sitk, nii_as_nib=1)
 
         if isinstance(transform_sitk, sitk.Transform):
             matrix_nda = NiftyRegToSimpleItkConverter.\
                 convert_sitk_to_regaladin_transform(
                     transform_sitk)
-            dw.DataWriter.write_transform_nreg(
-                matrix_nda, path_to_output, verbose)
-
-        elif isinstance(transform_sitk, sitk.Image):
-            transform_nreg = NiftyRegToSimpleItkConverter.\
-                convert_regf3d_to_sitk_displacement(transform_sitk)
+            dw.DataWriter.write_transform(matrix_nda, path_to_output, verbose)
 
         else:
-            raise IOError("Input must be either a "
-                          "sitk.Transform or sitk.Image (displacement)")
+            transform_nreg = NiftyRegToSimpleItkConverter.\
+                convert_sitk_to_regf3d_displacement(transform_sitk)
+            dw.DataWriter.write_transform(
+                transform_nreg, path_to_output, verbose)
 
     @staticmethod
     def convert_sitk_to_regaladin_transform(transform_sitk):
@@ -149,36 +124,29 @@ class NiftyRegToSimpleItkConverter(object):
         return transform_sitk
 
     @staticmethod
-    def convert_regf3d_to_sitk_displacement(displacement_nreg_sitk):
-        nda = sitk.GetArrayFromImage(displacement_nreg_sitk)
+    def convert_regf3d_to_sitk_displacement(displacement_nreg_nib):
+
+        nda = displacement_nreg_nib.get_data()
         nda[..., 0:2] *= -1
 
-        displacement_sitk = sitk.GetImageFromArray(nda)
-        displacement_sitk.CopyInformation(displacement_nreg_sitk)
+        displacement_sitk_nib = nib.Nifti1Image(
+            nda,
+            displacement_nreg_nib.get_affine(),
+            displacement_nreg_nib.get_header())
 
-        return displacement_sitk
+        return displacement_sitk_nib
 
     @staticmethod
-    def get_niftyreg_jacobian_determinant_from_displacement_sitk(
-            displacement_sitk):
+    def convert_sitk_to_regf3d_displacement(displacement_sitk_nib):
 
-        path_to_disp = os.path.join(DIR_TMP, "disp.nii.gz")
-        path_to_jac = os.path.join(DIR_TMP, "disp_jac.nii.gz")
+        nda = displacement_sitk_nib.get_data()
+        nda[..., 0:2] *= -1
 
-        displacement_nib = convert_sitk_to_nib_image(displacement_sitk)
-        displacement_nib.header['intent_p1'] = 1
-        nib.save(displacement_nib, path_to_disp)
+        displacement_nreg_nib = nib.Nifti1Image(
+            nda,
+            displacement_sitk_nib.get_affine(),
+            displacement_sitk_nib.get_header())
 
-        # sitkh.write_nifti_image_sitk(displacement_sitk, path_to_disp)
-        # cmd_args = ["fslmodhd"]
-        # cmd_args.append(path_to_disp)
-        # cmd_args.append("intent_p1 1")
-        # ph.execute_command(" ".join(cmd_args))
+        displacement_nreg_nib.header['intent_p1'] = 1
 
-        cmd_args = ["reg_jacobian"]
-        cmd_args.append("-trans %s" % path_to_disp)
-        cmd_args.append("-jac %s" % path_to_jac)
-        ph.execute_command(" ".join(cmd_args))
-
-        det_jac_sitk = sitk.ReadImage(path_to_jac)
-        return det_jac_sitk
+        return displacement_nreg_nib

@@ -48,6 +48,27 @@ class UtilitiesTest(unittest.TestCase):
                 np.sum(np.abs(nda - nda_reference)), 0,
                 places=self.precision)
 
+    def test_convert_regf3d_to_sitk_transform(self):
+        for dim in [3]:
+            path_to_regf3d_transform = os.path.join(
+                DIR_TEST, "%dD_regf3d_Target_Source_cpp_disp.nii.gz" % dim)
+            path_to_sitk_reference_transform = os.path.join(
+                DIR_TEST, "%dD_regf3d_Target_Source_cpp_disp_sitk.nii.gz" % dim)
+
+            transform_nreg_nib = nib.load(path_to_regf3d_transform)
+            transform_sitk_nib = nreg2sitk.convert_regf3d_to_sitk_displacement(
+                transform_nreg_nib)
+
+            transform_reference_nib = nib.load(
+                path_to_sitk_reference_transform)
+
+            nda = transform_sitk_nib.get_data()
+            nda_reference = transform_reference_nib.get_data()
+
+            self.assertAlmostEqual(
+                np.sum(np.abs(nda - nda_reference)), 0,
+                places=self.precision)
+
     def test_convert_sitk_to_regaladin_transform(self):
         for dim in [2, 3]:
             path_to_sitk_transform = os.path.join(
@@ -60,6 +81,27 @@ class UtilitiesTest(unittest.TestCase):
 
             nda_reference = np.loadtxt(path_to_reference_transform)
             nda = nreg2sitk.convert_sitk_to_regaladin_transform(transform_sitk)
+
+            self.assertAlmostEqual(
+                np.sum(np.abs(nda - nda_reference)), 0,
+                places=self.precision)
+
+    def test_convert_sitk_to_regf3d_transform(self):
+        for dim in [3]:
+            path_to_sitk_reference_transform = os.path.join(
+                DIR_TEST, "%dD_regf3d_Target_Source_cpp_disp.nii.gz" % dim)
+            path_to_sitk_transform = os.path.join(
+                DIR_TEST, "%dD_regf3d_Target_Source_cpp_disp_sitk.nii.gz" % dim)
+
+            transform_sitk_nib = nib.load(path_to_sitk_transform)
+            transform_nreg_nib = nreg2sitk.convert_sitk_to_regf3d_displacement(
+                transform_sitk_nib)
+
+            transform_reference_nib = nib.load(
+                path_to_sitk_reference_transform)
+
+            nda = transform_nreg_nib.get_data()
+            nda_reference = transform_reference_nib.get_data()
 
             self.assertAlmostEqual(
                 np.sum(np.abs(nda - nda_reference)), 0,

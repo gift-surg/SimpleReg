@@ -7,9 +7,10 @@
 
 
 import os
+import re
 import unittest
 import numpy as np
-import re
+import nibabel as nib
 import SimpleITK as sitk
 
 import pysitk.python_helper as ph
@@ -38,6 +39,10 @@ class ApplicationTest(unittest.TestCase):
             DIR_TEST, "2D_regaladin_Target_Source.txt")
         self.transform_3D_nreg = os.path.join(
             DIR_TEST, "3D_regaladin_Target_Source.txt")
+        self.transform_3D_nreg_disp = os.path.join(
+            DIR_TEST, "3D_regf3d_Target_Source_cpp_disp.nii.gz")
+        self.transform_3D_sitk_disp = os.path.join(
+            DIR_TEST, "3D_regf3d_Target_Source_cpp_disp_sitk.nii.gz")
 
         self.transform_3D_flirt = os.path.join(
             DIR_TEST, "3D_flirt_Target_Source.txt")
@@ -46,11 +51,12 @@ class ApplicationTest(unittest.TestCase):
             DIR_TEST, "3D_Brain_Template_landmarks.txt")
 
         self.output_transform = os.path.join(self.dir_output, "transform.txt")
+        self.output_transform_disp = os.path.join(
+            self.dir_output, "transform.nii.gz")
         self.output_landmarks = os.path.join(self.dir_output, "landmarks.txt")
         self.output_image = os.path.join(self.dir_output, "image.nii.gz")
 
     def test_transform_image(self):
-
         cmd_args = ["python simplereg_transform.py"]
         cmd_args.append("-i %s %s %s" % (
             self.image_3D, self.transform_3D_sitk, self.output_image))
@@ -77,7 +83,7 @@ class ApplicationTest(unittest.TestCase):
             self.landmarks_3D, self.transform_3D_sitk, self.output_landmarks))
         self.assertEqual(ph.execute_command(" ".join(cmd_args)), 0)
 
-    def test_transform_sitk_to_nreg(self):
+    def test_transform_sitk_to_regaladin(self):
         cmd_args = ["python simplereg_transform.py"]
         cmd_args.append("-sitk2nreg %s %s" % (
             self.transform_3D_sitk, self.output_transform))
@@ -88,7 +94,24 @@ class ApplicationTest(unittest.TestCase):
         self.assertAlmostEqual(
             np.linalg.norm(ref_nda - res_nda), 0, places=self.precision)
 
-    def test_transform_nreg_to_sitk(self):
+    def test_transform_sitk_to_regf3d(self):
+        cmd_args = ["python simplereg_transform.py"]
+        cmd_args.append("-sitk2nreg %s %s" % (
+            self.transform_3D_sitk_disp, self.output_transform_disp))
+        self.assertEqual(ph.execute_command(" ".join(cmd_args)), 0)
+
+        res_nib = nib.load(self.output_transform_disp)
+        ref_nib = nib.load(self.transform_3D_nreg_disp)
+
+        HEADERS = ['intent_p1']
+        for h in HEADERS:
+            self.assertEqual(res_nib.header[h], res_nib.header[h])
+
+        diff_nda = res_nib.get_data() - ref_nib.get_data()
+        self.assertAlmostEqual(
+            np.linalg.norm(diff_nda), 0, places=self.precision)
+
+    def test_transform_nreg_to_sitk_regaladin(self):
         cmd_args = ["python simplereg_transform.py"]
         cmd_args.append("-nreg2sitk %s %s" % (
             self.transform_3D_nreg, self.output_transform))
@@ -100,6 +123,18 @@ class ApplicationTest(unittest.TestCase):
         ref_nda = np.array(ref_sitk.GetParameters())
         self.assertAlmostEqual(
             np.linalg.norm(ref_nda - res_nda), 0, places=self.precision)
+
+    def test_transform_nreg_to_sitk_regf3d(self):
+        cmd_args = ["python simplereg_transform.py"]
+        cmd_args.append("-nreg2sitk %s %s" % (
+            self.transform_3D_nreg_disp, self.output_transform_disp))
+        self.assertEqual(ph.execute_command(" ".join(cmd_args)), 0)
+
+        res_sitk = sitk.ReadImage(self.output_transform_disp)
+        ref_sitk = sitk.ReadImage(self.transform_3D_sitk_disp)
+        diff_nda = sitk.GetArrayFromImage(res_sitk - ref_sitk)
+        self.assertAlmostEqual(
+            np.linalg.norm(diff_nda), 0, places=self.precision)
 
     def test_transform_flirt_to_sitk(self):
         cmd_args = ["python simplereg_transform.py"]
