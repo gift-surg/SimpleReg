@@ -116,18 +116,21 @@ def main():
         default=None,
     )
     parser.add_argument(
-        "-mask2land", "--mask-to-landmark",
-        help="Compute landmarks representing the centroids of each connected "
-        "mask region",
-        metavar=("MASK", "OUTPUT_LANDMARKS"),
+        "-label2land", "--label-to-landmark",
+        help="Compute landmarks representing the centroids of each label. "
+        "If a binary mask is provided centroids are computed for each "
+        "connected region.",
+        metavar=("LABEL", "OUTPUT_LANDMARKS"),
         type=str,
         nargs=2,
         default=None,
     )
     parser.add_argument(
-        "-land2mask", "--landmark-to-mask",
-        help="Convert landmark coordinates to image mask",
-        metavar=("LANDMARKS", "IMAGE", "OUTPUT_MASK"),
+        "-land2label", "--landmark-to-label",
+        help="Convert landmark coordinates to image label where "
+        "each landmark corresponds to a different label."
+        "An image needs to be provided to define the image space.",
+        metavar=("LANDMARKS", "IMAGE", "OUTPUT_LABEL"),
         type=str,
         nargs=3,
         default=None,
@@ -210,22 +213,22 @@ def main():
     if args.split_labels is not None:
         dim = int(args.split_labels[1])
         if dim != 4 and dim != 5:
-            raise IOError("Output dimension can either be 4D or 5D")
+            raise IOError("Output dimension can only be either 4 or 5")
         utils.split_labels(args.split_labels[0], dim, args.split_labels[2])
 
-    if args.mask_to_landmark is not None:
+    if args.label_to_landmark is not None:
         landmark_estimator = le.LandmarkEstimator(
-            path_to_image_mask=args.mask_to_landmark[0],
+            path_to_image_label=args.label_to_landmark[0],
             verbose=args.verbose,
         )
         landmark_estimator.run()
         landmarks_nda = landmark_estimator.get_landmarks()
         dw.DataWriter.write_landmarks(
-            landmarks_nda, args.mask_to_landmark[1], args.verbose)
+            landmarks_nda, args.label_to_landmark[1], args.verbose)
 
-    if args.landmark_to_mask:
-        landmarks_nda = dr.DataReader.read_landmarks(args.landmark_to_mask[0])
-        image_sitk = dr.DataReader.read_image(args.landmark_to_mask[1])
+    if args.landmark_to_label:
+        landmarks_nda = dr.DataReader.read_landmarks(args.landmark_to_label[0])
+        image_sitk = dr.DataReader.read_image(args.landmark_to_label[1])
         landmark_visualizer = lv.LandmarkVisualizer(
             landmarks_nda=landmarks_nda,
             direction=image_sitk.GetDirection(),
@@ -233,9 +236,10 @@ def main():
             spacing=image_sitk.GetSpacing(),
             size=image_sitk.GetSize()
         )
-        landmark_visualizer.build_landmark_image_sitk(pattern="sphere")
+        landmark_visualizer.build_landmark_image_sitk(
+            pattern="cross", radius=2)
         mask_sitk = landmark_visualizer.get_image_sitk()
-        dw.DataWriter.write_image(mask_sitk, args.landmark_to_mask[2])
+        dw.DataWriter.write_image(mask_sitk, args.landmark_to_label[2])
 
     if args.landmark_to_image:
         landmarks_nda = dr.DataReader.read_landmarks(args.landmark_to_image[0])
@@ -247,7 +251,8 @@ def main():
             spacing=image_sitk.GetSpacing(),
             size=image_sitk.GetSize()
         )
-        landmark_visualizer.build_landmark_image_sitk(pattern="hollow_sphere")
+        landmark_visualizer.build_landmark_image_sitk(
+            pattern="cross", radius=2)
         image_sitk = landmark_visualizer.annotate_landmarks_on_image_sitk(
             image_sitk)
         dw.DataWriter.write_image(image_sitk, args.landmark_to_image[2])

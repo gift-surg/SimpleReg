@@ -28,7 +28,7 @@ class LandmarkVisualizer(object):
         self._landmarks_nda = landmarks_nda
         self._direction = direction
         self._origin = origin
-        self._spacing = spacing
+        self._spacing = np.array(spacing)
         self._size = size
 
         self._landmark_image_sitk = None
@@ -37,7 +37,6 @@ class LandmarkVisualizer(object):
             "hollow_sphere": self._get_pattern_hollow_sphere,
             "sphere": self._get_pattern_sphere,
             "cross": self._get_pattern_cross,
-            "plus": self._get_pattern_plus,
         }
 
     def set_landmarks_nda(self, landmarks_nda):
@@ -49,7 +48,7 @@ class LandmarkVisualizer(object):
     def get_image_nda(self):
         return np.array(self._landmark_image_nda)
 
-    def build_landmark_image_sitk(self, pattern="plus"):
+    def build_landmark_image_sitk(self, pattern="cross", radius=2):
         nda = np.zeros(self._size[::-1], dtype=np.uint8)
 
         foo = sitk.GetImageFromArray(nda)
@@ -62,10 +61,13 @@ class LandmarkVisualizer(object):
             index = foo.TransformPhysicalPointToIndex(landmark)[::-1]
 
             if pattern == "dot":
-                nda[index] = 1
+                nda[index] = i + 1
             else:
-                pattern_ = self._get_pattern[pattern](2, 0.5)
-                nda = self._apply_pattern(nda, index, pattern_, value=1)
+                pattern_ = self._get_pattern[pattern](
+                    radius=radius,
+                    spacing=self._spacing,
+                )
+                nda = self._apply_pattern(nda, index, pattern_, value=i + 1)
 
         self._landmark_image_sitk = sitk.GetImageFromArray(nda)
         self._landmark_image_sitk.SetSpacing(self._spacing)
@@ -74,12 +76,10 @@ class LandmarkVisualizer(object):
 
         self._landmark_image_nda = nda
 
-    def annotate_landmarks_on_image_sitk(self, image_sitk):
-        val = 0
-
+    def annotate_landmarks_on_image_sitk(self, image_sitk, value=0):
         image_nda = sitk.GetArrayFromImage(image_sitk)
-        indices = np.where(self._landmark_image_nda == 1)
-        image_nda[indices] = val
+        indices = np.where(self._landmark_image_nda > 0)
+        image_nda[indices] = value
 
         image_landmarks_sitk = sitk.GetImageFromArray(image_nda)
         image_landmarks_sitk.CopyInformation(image_sitk)
@@ -87,49 +87,43 @@ class LandmarkVisualizer(object):
         return sitk.Image(image_landmarks_sitk)
 
     @staticmethod
-    def _get_pattern_hollow_sphere(radius, thickness=1):
+    def _get_pattern_hollow_sphere(radius, spacing=np.ones(3), thickness=0.5):
         a = radius + np.ceil(thickness)
         x = np.linspace(-a, a, 2 * a + 1)
         xx, yy, zz = np.meshgrid(x, x, x)
         pattern = np.zeros_like(xx)
-        values = xx**2 + yy**2 + zz**2
+        values = \
+            (xx / spacing[0])**2 + \
+            (yy / spacing[1])**2 + \
+            (zz / spacing[2])**2
         pattern[values <= (radius + thickness)**2] = 1
         pattern[values < (radius - thickness)**2] = 0
         return pattern
 
     @staticmethod
-    def _get_pattern_sphere(radius, thickness=1):
+    def _get_pattern_sphere(radius, spacing=np.ones(3), thickness=0):
         a = radius + np.ceil(thickness)
         x = np.linspace(-a, a, 2 * a + 1)
         xx, yy, zz = np.meshgrid(x, x, x)
         pattern = np.zeros_like(xx)
-        values = xx**2 + yy**2 + zz**2
+        values = \
+            (xx / spacing[0])**2 + \
+            (yy / spacing[1])**2 + \
+            (zz / spacing[2])**2
         pattern[values <= (radius + thickness)**2] = 1
         return pattern
 
     @staticmethod
-    def _get_pattern_cross(radius, thickness):
-        x = np.arange(2 * radius + 1)
-        xx, yy, zz = np.meshgrid(x, x, x)
+    def _get_pattern_cross(radius, spacing=np.ones(3), thickness=None):
+        a = [int(np.round(radius / s)) for s in spacing[::-1]]
+        x = np.arange(2 * a[0] + 1)
+        y = np.arange(2 * a[1] + 1)
+        z = np.arange(2 * a[2] + 1)
+        xx, yy, zz = np.meshgrid(x, y, z, indexing='ij')
         pattern = np.zeros_like(xx)
-        n = pattern.shape[0] - 1
-        for i in range(n + 1):
-            pattern[i, i, i] = 1
-            pattern[i, i, n - i] = 1
-            pattern[i, n - i, i] = 1
-            pattern[i, n - i, n - i] = 1
-        return pattern
-
-    @staticmethod
-    def _get_pattern_plus(radius, thickness):
-        x = np.arange(2 * radius + 1)
-        xx, yy, zz = np.meshgrid(x, x, x)
-        pattern = np.zeros_like(xx)
-        n = pattern.shape[0] - 1
-        for i in range(n + 1):
-            pattern[i, radius, radius] = 1
-            pattern[radius, i, radius] = 1
-            pattern[radius, radius, i] = 1
+        pattern[:, a[1], a[2]] = 1
+        pattern[a[0], :, a[2]] = 1
+        pattern[a[0], a[1], :] = 1
         return pattern
 
     @staticmethod

@@ -22,8 +22,8 @@ import pysitk.simple_itk_helper as sitkh
 #
 class LandmarkEstimator(object):
 
-    def __init__(self, path_to_image_mask, verbose=1):
-        self._path_to_image_mask = path_to_image_mask
+    def __init__(self, path_to_image_label, verbose=1):
+        self._path_to_image_label = path_to_image_label
         self._verbose = verbose
 
         self._landmarks_image_space = None
@@ -41,21 +41,21 @@ class LandmarkEstimator(object):
                       newline=False)
 
         # read original image
-        image_mask_sitk = sitk.ReadImage(self._path_to_image_mask)
-        image_mask_nda = sitk.GetArrayFromImage(image_mask_sitk) * 0
+        image_label_sitk = sitk.ReadImage(self._path_to_image_label)
+        image_label_nda = sitk.GetArrayFromImage(image_label_sitk) * 0
 
         # convert to integer voxels
-        image_mask_nda = self._get_array_with_landmarks(
-            image_mask_sitk.GetSize()[::-1], self._landmarks_voxel_space)
+        image_label_nda = self._get_array_with_landmarks(
+            image_label_sitk.GetSize()[::-1], self._landmarks_voxel_space)
         # landmarks_voxel_space = self._landmarks_voxel_space.astype('int')
 
         # for i in range(landmarks_voxel_space.shape[0]):
-        #     image_mask_nda[landmarks_voxel_space[i, 2],
+        #     image_label_nda[landmarks_voxel_space[i, 2],
         #                    landmarks_voxel_space[i, 1],
         #                    landmarks_voxel_space[i, 0]] = 1
 
-        image_landmarks_sitk = sitk.GetImageFromArray(image_mask_nda)
-        image_landmarks_sitk.CopyInformation(image_mask_sitk)
+        image_landmarks_sitk = sitk.GetImageFromArray(image_label_nda)
+        image_landmarks_sitk.CopyInformation(image_label_sitk)
 
         sitkh.write_nifti_image_sitk(image_landmarks_sitk, path_to_file)
         print("done")
@@ -63,16 +63,21 @@ class LandmarkEstimator(object):
     def run(self):
 
         # convert image to data array
-        image_mask_sitk = sitk.ReadImage(self._path_to_image_mask)
-        image_mask_nda = sitk.GetArrayFromImage(image_mask_sitk)
+        image_label_sitk = sitk.ReadImage(self._path_to_image_label)
+        image_label_nda = sitk.GetArrayFromImage(
+            image_label_sitk).astype(np.uint8)
 
-        # separate into connected regions
-        labels_nda = skimage.measure.label(image_mask_nda)
+        # if binary mask separate into connected regions
+        if image_label_nda.max() == 1:
+            labels_nda = skimage.measure.label(image_label_nda)
+        else:
+            labels_nda = image_label_nda
+
         n_landmarks = labels_nda.max()
 
         # get landmark coordinates in (continuous) voxel space
         self._landmarks_voxel_space = np.zeros(
-            (n_landmarks, image_mask_sitk.GetDimension()))
+            (n_landmarks, image_label_sitk.GetDimension()))
         for i in range(n_landmarks):
             points = np.array(np.where(labels_nda == i + 1))
             self._landmarks_voxel_space[i, :] = np.mean(points, axis=1)
@@ -85,7 +90,7 @@ class LandmarkEstimator(object):
             self._landmarks_voxel_space)
         for i in range(n_landmarks):
             self._landmarks_image_space[i, :] = \
-                image_mask_sitk.TransformContinuousIndexToPhysicalPoint(
+                image_label_sitk.TransformContinuousIndexToPhysicalPoint(
                 self._landmarks_voxel_space[i, :])
 
         if self._verbose:
@@ -97,14 +102,14 @@ class LandmarkEstimator(object):
             print(self._landmarks_image_space)
 
             # find bounding box for "zoomed in" visualization
-            ran_x, ran_y, ran_z = self._get_bounding_box(image_mask_nda)
+            ran_x, ran_y, ran_z = self._get_bounding_box(image_label_nda)
 
             # get zoomed-in image mask
-            image_mask_nda_show = image_mask_nda[
+            image_label_nda_show = image_label_nda[
                 ran_x[0]: ran_x[1], ran_y[0]: ran_y[1], ran_z[0]: ran_z[1]]
             landmarks_nda = self._get_array_with_landmarks(
-                image_mask_nda.shape, self._landmarks_voxel_space)
-            show_mask_sitk = sitk.GetImageFromArray(image_mask_nda_show)
+                image_label_nda.shape, self._landmarks_voxel_space)
+            show_mask_sitk = sitk.GetImageFromArray(image_label_nda_show)
 
             # get zoomed-in landmark estimate (dilated for visualization)
             landmarks_nda_show = landmarks_nda[
@@ -117,7 +122,7 @@ class LandmarkEstimator(object):
             sitkh.show_sitk_image(
                 show_mask_sitk, segmentation=show_landmarks_sitk,
                 label=os.path.basename(
-                    ph.strip_filename_extension(self._path_to_image_mask)[0]))
+                    ph.strip_filename_extension(self._path_to_image_label)[0]))
 
     ##
     # Return rectangular region surrounding masked region.
