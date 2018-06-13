@@ -117,12 +117,10 @@ class DataReader(object):
             if int(header['intent_p1']) != 1 or \
                     int(header['intent_p2']) != 0 or \
                     int(header['intent_p3']) != 0 or \
-                    int(header['dim'][0]) != 5 or \
-                    int(header['dim'][4]) != 1 or \
-                    int(header['dim'][5]) != 3 or \
                     int(header['intent_code']) != 1007:
                 raise IOError(
-                    "Provided image must be a NiftyReg displacement field")
+                    "Provided image must represent a NiftyReg "
+                    "displacement field")
 
         return transform_nreg
 
