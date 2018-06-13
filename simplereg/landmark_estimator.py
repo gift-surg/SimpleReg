@@ -22,7 +22,7 @@ import pysitk.simple_itk_helper as sitkh
 #
 class LandmarkEstimator(object):
 
-    def __init__(self, path_to_image_label, verbose=1):
+    def __init__(self, path_to_image_label, verbose=0):
         self._path_to_image_label = path_to_image_label
         self._verbose = verbose
 
@@ -59,6 +59,30 @@ class LandmarkEstimator(object):
 
         sitkh.write_nifti_image_sitk(image_landmarks_sitk, path_to_file)
         print("done")
+
+        # show landmark estimate
+        if self._verbose:
+            # find bounding box for "zoomed in" visualization
+            ran_x, ran_y, ran_z = self._get_bounding_box(image_label_nda)
+
+            # get zoomed-in image mask
+            image_label_nda_show = image_label_nda[
+                ran_x[0]: ran_x[1], ran_y[0]: ran_y[1], ran_z[0]: ran_z[1]]
+            landmarks_nda = self._get_array_with_landmarks(
+                image_label_nda.shape, self._landmarks_voxel_space)
+            show_mask_sitk = sitk.GetImageFromArray(image_label_nda_show)
+
+            # get zoomed-in landmark estimate (dilated for visualization)
+            landmarks_nda_show = landmarks_nda[
+                ran_x[0]: ran_x[1], ran_y[0]: ran_y[1], ran_z[0]: ran_z[1]]
+            landmarks_nda_show += scipy.ndimage.morphology.binary_dilation(
+                landmarks_nda_show, iterations=10)
+            show_landmarks_sitk = sitk.GetImageFromArray(landmarks_nda_show)
+
+            sitkh.show_sitk_image(
+                show_mask_sitk, segmentation=show_landmarks_sitk,
+                label=os.path.basename(
+                    ph.strip_filename_extension(self._path_to_image_label)[0]))
 
     def run(self):
 
@@ -100,29 +124,6 @@ class LandmarkEstimator(object):
 
             ph.print_info("Landmarks in image space: ")
             print(self._landmarks_image_space)
-
-            # find bounding box for "zoomed in" visualization
-            ran_x, ran_y, ran_z = self._get_bounding_box(image_label_nda)
-
-            # get zoomed-in image mask
-            image_label_nda_show = image_label_nda[
-                ran_x[0]: ran_x[1], ran_y[0]: ran_y[1], ran_z[0]: ran_z[1]]
-            landmarks_nda = self._get_array_with_landmarks(
-                image_label_nda.shape, self._landmarks_voxel_space)
-            show_mask_sitk = sitk.GetImageFromArray(image_label_nda_show)
-
-            # get zoomed-in landmark estimate (dilated for visualization)
-            landmarks_nda_show = landmarks_nda[
-                ran_x[0]: ran_x[1], ran_y[0]: ran_y[1], ran_z[0]: ran_z[1]]
-            landmarks_nda_show += scipy.ndimage.morphology.binary_dilation(
-                landmarks_nda_show, iterations=10)
-            show_landmarks_sitk = sitk.GetImageFromArray(landmarks_nda_show)
-
-            # show landmark estimate
-            sitkh.show_sitk_image(
-                show_mask_sitk, segmentation=show_landmarks_sitk,
-                label=os.path.basename(
-                    ph.strip_filename_extension(self._path_to_image_label)[0]))
 
     ##
     # Return rectangular region surrounding masked region.
