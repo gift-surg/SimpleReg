@@ -62,7 +62,8 @@ def main():
     )
     parser.add_argument(
         "-sitk2nreg", "--sitk-to-nreg",
-        help="Convert (Simple)ITK to NiftyReg transform representation.",
+        help="Convert (Simple)ITK to NiftyReg transform representation. "
+        "This includes both affine transformations and displacement fields.",
         metavar=("SIMPLEITK", "OUTPUT_NIFTYREG"),
         type=str,
         nargs=2,
@@ -70,7 +71,10 @@ def main():
     )
     parser.add_argument(
         "-nreg2sitk", "--nreg-to-sitk",
-        help="Convert NiftyReg to (Simple)ITK transform representation.",
+        help="Convert NiftyReg to (Simple)ITK transform representation. "
+        "This includes conversions from both "
+        "affine transformations (reg_aladin) "
+        "and displacement fields (reg_f3d).",
         metavar=("NIFTYREG", "OUTPUT_SIMPLEITK"),
         type=str,
         nargs=2,
@@ -128,7 +132,7 @@ def main():
     parser.add_argument(
         "-land2label", "--landmark-to-label",
         help="Convert landmark coordinates to image label where "
-        "each landmark corresponds to a different label."
+        "each landmark corresponds to a different label. "
         "An image needs to be provided to define the image space.",
         metavar=("LANDMARKS", "IMAGE", "OUTPUT_LABEL"),
         type=str,
