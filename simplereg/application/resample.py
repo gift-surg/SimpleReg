@@ -8,6 +8,8 @@ import pysitk.python_helper as ph
 import pysitk.simple_itk_helper as sitkh
 
 import simplereg.utilities as utils
+from simplereg.niftyreg_to_simpleitk_converter import \
+    NiftyRegToSimpleItkConverter as nreg2sitk
 
 ALLOWED_INTERPOLATORS = ["Linear", "NearestNeighbour", "BSpline"]
 
@@ -115,7 +117,8 @@ def main():
     if args.transform:
         type_transform = ph.strip_filename_extension(args.transform)[1]
         if type_transform in ["nii", "nii.gz"]:
-            displacement_sitk = sitk.ReadImage(args.transform)
+            displacement_sitk = sitk.ReadImage(
+                args.transform, sitk.sitkVectorFloat64)
             transform_sitk = sitk.DisplacementFieldTransform(
                 sitk.Image(displacement_sitk))
         else:

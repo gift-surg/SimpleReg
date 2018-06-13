@@ -8,6 +8,7 @@
 import os
 import sys
 import numpy as np
+import nibabel as nib
 import SimpleITK as sitk
 
 import pysitk.python_helper as ph
@@ -47,8 +48,20 @@ class DataReader(object):
 
         return np.loadtxt(path_to_file)
 
+    ##
+    # Reads a transform.
+    # \date       2018-06-12 23:59:38-0600
+    #
+    # \param      path_to_file  The path to file
+    # \param      inverse       The inverse
+    # \param      nii_as_nib    State whether NIfTI image should be read as
+    #                           nibabel object (only used for sitk_to_nreg
+    #                           displacement field conversion); bool
+    #
+    # \return     Transform as type np.array, sitk.Image or nib.Nifti
+    #
     @staticmethod
-    def read_transform(path_to_file, inverse=0):
+    def read_transform(path_to_file, inverse=0, nii_as_nib=0):
 
         if not ph.file_exists(path_to_file):
             raise IOError("Transform file '%s' not found" % path_to_file)
@@ -65,12 +78,18 @@ class DataReader(object):
             transform_sitk = sitkh.read_transform_sitk(
                 path_to_file, inverse=inverse)
         else:
-            displacement_sitk = sitk.ReadImage(path_to_file)
-            transform_sitk = sitk.DisplacementFieldTransform(
-                sitk.Image(displacement_sitk))
-            if inverse:
-                # May throw RuntimeError
-                transform_sitk = transform_sitk.GetInverse()
+            # Used for sitk_to_nreg conversion only
+            if nii_as_nib:
+                displacement_sitk = nib.load(path_to_file)
+                return displacement_sitk
+            else:
+                displacement_sitk = sitk.ReadImage(
+                    path_to_file, sitk.sitkVectorFloat64)
+                transform_sitk = sitk.DisplacementFieldTransform(
+                    sitk.Image(displacement_sitk))
+                if inverse:
+                    # May throw RuntimeError
+                    transform_sitk = transform_sitk.GetInverse()
 
         return transform_sitk
 
@@ -78,16 +97,34 @@ class DataReader(object):
     def read_transform_nreg(path_to_file):
 
         if not ph.file_exists(path_to_file):
-            raise IOError("RegAladin transform file '%s' not found" %
+            raise IOError("NiftyReg transform file '%s' not found" %
                           path_to_file)
 
         extension = ph.strip_filename_extension(path_to_file)[1]
-        if extension not in ALLOWED_TRANSFORMS:
-            raise IOError(
-                "RegAladin transform file extension must be of type %s" %
-                ", or ".join(ALLOWED_TRANSFORMS))
+        if extension not in ALLOWED_TRANSFORMS and \
+                extension not in ALLOWED_TRANSFORMS_DISPLACEMENTS:
+            raise IOError("NiftyReg transform file extension must be of type "
+                          "%s (reg_aladin) or %s (reg_f3d displacement)" % (
+                              ", ".join(ALLOWED_TRANSFORMS),
+                              ", ".join(ALLOWED_TRANSFORMS_DISPLACEMENTS)))
+        if extension in ALLOWED_TRANSFORMS:
+            transform_nreg = np.loadtxt(path_to_file)
+        else:
+            transform_nreg = nib.load(path_to_file)
 
-        return np.loadtxt(path_to_file)
+            # check that image is a NiftyReg displacement field
+            header = transform_nreg.get_header()
+            if int(header['intent_p1']) != 1 or \
+                    int(header['intent_p2']) != 0 or \
+                    int(header['intent_p3']) != 0 or \
+                    int(header['dim'][0]) != 5 or \
+                    int(header['dim'][4]) != 1 or \
+                    int(header['dim'][5]) != 3 or \
+                    int(header['intent_code']) != 1007:
+                raise IOError(
+                    "Provided image must be a NiftyReg displacement field")
+
+        return transform_nreg
 
     @staticmethod
     def read_transform_flirt(path_to_file):

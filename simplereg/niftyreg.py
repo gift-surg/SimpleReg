@@ -16,6 +16,8 @@ import pysitk.simple_itk_helper as sitkh
 
 from simplereg.definitions import DIR_TMP, OMP
 from simplereg.wrapper_registration import WrapperRegistration
+from simplereg.niftyreg_to_simpleitk_converter import \
+    NiftyRegToSimpleItkConverter as nreg2sitk
 
 
 class NiftyReg(WrapperRegistration):
@@ -160,22 +162,9 @@ class RegAladin(NiftyReg):
     #
     def _convert_to_sitk_transform(self):
 
-        dimension = self._fixed_sitk.GetDimension()
-
-        # Read trafo and invert such that format fits within SimpleITK
-        # structure
         matrix = np.loadtxt(self._registration_transform_str)
-        A = matrix[0:dimension, 0:dimension]
-        t = matrix[0:dimension, -1]
-
-        # Convert to SimpleITK physical coordinate system
-        R = np.eye(dimension)
-        R[0, 0] = -1
-        R[1, 1] = -1
-        A = R.dot(A).dot(R)
-        t = R.dot(t)
-
-        registration_transform_sitk = sitk.AffineTransform(A.flatten(), t)
+        registration_transform_sitk = nreg2sitk.convert_regaladin_to_sitk_transform(
+            matrix)
 
         return registration_transform_sitk
 

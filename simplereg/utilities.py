@@ -9,10 +9,11 @@ import os
 import numpy as np
 import nibabel as nib
 import SimpleITK as sitk
-import nipype.interfaces.c3
 
 import pysitk.python_helper as ph
 import pysitk.simple_itk_helper as sitkh
+
+from simplereg.definitions import DIR_TMP
 
 
 ##
@@ -49,150 +50,6 @@ def fiducial_registration_error(reference_nda, estimate_nda):
     FRE = np.square(np.sum(np.square(reference_nda - estimate_nda)) / N)
 
     return FRE
-
-
-##
-# Convert a NiftyReg-RegAladin affine transformation matrix into a SimpleITK
-# transform
-# \date       2018-04-25 21:40:05-0600
-#
-# \param      matrix  affine matrix as np.ndarray
-#
-# \return     Affine transformation of type sitk.AffineTransform
-#
-def convert_regaladin_to_sitk_transform(matrix):
-
-    if not isinstance(matrix, np.ndarray):
-        raise IOError("matrix must be a np.ndarray")
-
-    if matrix.shape != (4, 4):
-        raise IOError("matrix array must be of shape (4, 4)")
-
-    if np.sum(np.abs(matrix[-1, :] - np.array([0, 0, 0, 1]))):
-        raise IOError("last row of matrix must be [0, 0, 0, 1]")
-
-    # retrieve dimension
-    nda_2D = np.array([[0, 0, 1, 0], [0, 0, 0, 1]])
-    if np.sum(np.abs(matrix[2:, 0:] - nda_2D)) < 1e-6:
-        dim = 2
-    else:
-        dim = 3
-
-    # retrieve (dim x dim) matrix and translation
-    A = matrix[0:dim, 0:dim]
-    t = matrix[0:dim, -1]
-
-    # Convert to SimpleITK physical coordinate system
-    R = np.eye(dim)
-    R[0, 0] = -1
-    R[1, 1] = -1
-    A = R.dot(A).dot(R)
-    t = R.dot(t)
-
-    # Convert to affine transform
-    # (Note, it is not possible to extract a EulerxDTransform even for
-    # rigid reg_aladin trafos: 'Error: Attempt to set a Non-Orthogonal matrix';
-    # QR decomposition could work, but initial tests showed that np.linalg.qr
-    # and scipy.linalg.qr (can) return a matrix R with negative diagonal
-    # values)
-    transform_sitk = sitk.AffineTransform(A.flatten(), t)
-
-    return transform_sitk
-
-
-##
-# Convert SimpleITK Transform into a NiftyReg-RegAladin affine matrix
-# \date       2018-04-25 21:41:08-0600
-#
-# \param      transform_sitk  transformation as sitk.Transform
-#
-# \return     NiftyReg-RegAladin transformation as (4 x 4)-np.array
-#
-def convert_sitk_to_regaladin_transform(transform_sitk):
-
-    if not isinstance(transform_sitk, sitk.Transform):
-        raise IOError("Input must be a sitk.Transform")
-
-    dim = transform_sitk.GetDimension()
-    A_sitk = np.array(transform_sitk.GetMatrix()).reshape(dim, dim)
-    t_sitk = np.array(transform_sitk.GetTranslation())
-
-    # Convert to physical coordinate system
-    A = np.eye(4)
-    R = np.eye(dim)
-
-    R[0, 0] = -1
-    R[1, 1] = -1
-    A[0:dim, 0:dim] = R.dot(A_sitk).dot(R)
-    A[0:dim, 3] = R.dot(t_sitk)
-
-    return A
-
-
-##
-# Convert FLIRT to SimpleITK transform
-# \date       2018-06-10 16:09:56-0600
-#
-# \param      path_to_flirt_mat       Path to FLIRT matrix
-# \param      path_to_fixed           Path to fixed image used by FLIRT (-ref)
-# \param      path_to_moving          Path to moving image used by FLIRT (-src)
-# \param      path_to_sitk_transform  Path to output SimpleITK transform
-# \param      verbose                 Turn on/off verbose output
-#
-def convert_flirt_to_sitk_transform(
-        path_to_flirt_mat,
-        path_to_fixed,
-        path_to_moving,
-        path_to_sitk_transform,
-        verbose=0,
-):
-
-    ph.create_directory(os.path.dirname(path_to_sitk_transform))
-
-    c3d = nipype.interfaces.c3.C3dAffineTool()
-    c3d.inputs.reference_file = path_to_fixed
-    c3d.inputs.source_file = path_to_moving
-    c3d.inputs.transform_file = path_to_flirt_mat
-    c3d.inputs.fsl2ras = True
-    c3d.inputs.itk_transform = path_to_sitk_transform
-
-    if verbose:
-        ph.print_execution(c3d.cmdline)
-    c3d.run()
-
-
-##
-# Convert SimpleITK to FLIRT transform
-#
-# Remark: Conversion to FLIRT only provides 4 decimal places
-# \date       2018-06-10 16:09:56-0600
-#
-# \param      path_to_sitk_transform  Path to SimpleITK transform
-# \param      path_to_fixed           Path to fixed image used for registration
-# \param      path_to_moving          Path to moving image used for reg.
-# \param      path_to_flirt_mat       Path to output FLIRT matrix
-# \param      verbose                 Turn on/off verbose output
-#
-def convert_sitk_to_flirt_transform(
-        path_to_sitk_transform,
-        path_to_fixed,
-        path_to_moving,
-        path_to_flirt_mat,
-        verbose=0,
-):
-
-    ph.create_directory(os.path.dirname(path_to_flirt_mat))
-
-    c3d = nipype.interfaces.c3.C3dAffineTool()
-    c3d.inputs.reference_file = path_to_fixed
-    c3d.inputs.source_file = path_to_moving
-
-    # position of -ras2fsl matters!!
-    c3d.inputs.args = "-itk %s -ras2fsl -o %s" % (
-        path_to_sitk_transform, path_to_flirt_mat)
-    if verbose:
-        ph.print_execution(c3d.cmdline)
-    c3d.run()
 
 
 ##
