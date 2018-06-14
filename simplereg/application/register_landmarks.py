@@ -61,6 +61,7 @@ def main():
     rigid_transform_sitk.SetMatrix(rotation_matrix_nda.flatten())
     rigid_transform_sitk.SetTranslation(translation_nda)
 
+    ph.create_directory(os.path.dirname(args.output))
     sitk.WriteTransform(rigid_transform_sitk, args.output)
     if args.verbose:
         ph.print_info(
