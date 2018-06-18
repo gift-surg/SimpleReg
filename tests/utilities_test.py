@@ -289,3 +289,54 @@ class UtilitiesTest(unittest.TestCase):
         self.assertAlmostEqual(
             np.linalg.norm(diff_nda), 0,
             places=self.precision)
+
+    def test_compose_affine_transforms(self):
+
+        # Composition of Rigid transforms is rigid transform
+        self.assertIsInstance(
+            utils.compose_affine_transforms(
+                sitk.Euler3DTransform(), sitk.Euler3DTransform()),
+            sitk.Euler3DTransform)
+
+        # Composition with an affine transform returns affine transform
+        self.assertIsInstance(
+            utils.compose_affine_transforms(
+                sitk.AffineTransform(3), sitk.Euler3DTransform()),
+            sitk.AffineTransform)
+
+    # def test_compose_displacement_field_transforms(self):
+    #     transform_outer = sitk.Euler3DTransform()
+    #     transform_outer.SetRotation(0.3, -0.1, 1.3)
+    #     transform_outer.SetTranslation((-10.03, 13.12, -239.2))
+    #     transform_outer.SetCenter((1.3, -23.3, 54.1))
+
+    #     disp_outer = sitk.TransformToDisplacementField(transform_outer)
+    #     transform_disp_outer = sitk.DisplacementFieldTransform(
+    #         sitk.Image(disp_outer))
+
+    #     transform_inner_ = sitk.Euler3DTransform()
+    #     transform_inner_.SetRotation(-1.3, 0.31, 1.4)
+
+    #     transform_inner = sitk.AffineTransform(3)
+    #     transform_inner.SetMatrix(transform_inner_.GetMatrix())
+    #     transform_inner.SetTranslation((-10.1, 30.1, 0.4))
+    #     transform_inner.SetCenter((-13., 1.5, 0.7))
+    #     disp_inner = sitk.TransformToDisplacementField(transform_inner)
+    #     transform_disp_inner = sitk.DisplacementFieldTransform(
+    #         sitk.Image(disp_inner))
+
+    #     transform = utils.compose_affine_transforms(
+    #         transform_outer, transform_inner)
+    #     disp_ref = sitk.TransformToDisplacementField(transform)
+    #     transform_disp_ref = sitk.DisplacementFieldTransform(
+    #         sitk.Image(disp_ref))
+
+    #     transform_disp = utils.compose_displacement_field_transforms(
+    #         transform_disp_outer, transform_disp_inner)
+
+    #     self.assertAlmostEqual(
+    #         np.linalg.norm(
+    #             np.array(transform_disp.GetParameters()
+    #                      ) - transform_disp_ref.GetParameters()),
+    #         0, precision=self.precision
+    #     )

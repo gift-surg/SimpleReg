@@ -230,3 +230,89 @@ def split_labels(path_to_labels, dimension, path_to_output):
         labels_5d_sitk.SetSpacing(labels_sitk.GetSpacing())
         labels_5d_sitk.SetDirection(labels_sitk.GetDirection())
         sitkh.write_nifti_image_sitk(labels_5d_sitk, path_to_output)
+
+
+def compose_transforms(transform_outer, transform_inner):
+
+    if not isinstance(transform_outer, sitk.DisplacementFieldTransform) \
+            and not isinstance(transform_outer, sitk.Transform):
+        raise IOError("Outer transform must be of type sitk.Transform or "
+                      "sitk.DisplacementFieldTransform")
+    if not isinstance(transform_inner, sitk.DisplacementFieldTransform) \
+            and not isinstance(transform_inner, sitk.Transform):
+        raise IOError("Inner transform must be of type sitk.Transform or "
+                      "sitk.DisplacementFieldTransform")
+
+    # Compose affine transforms
+    if isinstance(transform_outer, sitk.Transform) \
+            and isinstance(transform_inner, sitk.Transform):
+        transform = compose_affine_transforms(transform_outer, transform_inner)
+
+    # Compose displacement fields if at least one transform is a disp field.
+    else:
+        # Convert sitk.Transform to displacement field if necessary
+        if isinstance(transform_outer, sitk.Transform):
+            displacement_sitk = sitk.TransformToDisplacementField(
+                transform_outer)
+            transform_outer = sitk.DisplacementFieldTransform(
+                sitk.Image(displacement_sitk))
+        if isinstance(transform_inner, sitk.Transform):
+            displacement_sitk = sitk.TransformToDisplacementField(
+                transform_inner)
+            transform_inner = sitk.DisplacementFieldTransform(
+                sitk.Image(displacement_sitk))
+
+        transform = compose_displacement_field_transforms(
+            transform_outer, transform_inner)
+
+    return transform
+
+
+def compose_displacement_field_transforms(transform_outer, transform_inner):
+    if not isinstance(transform_outer, sitk.DisplacementFieldTransform) \
+            or not isinstance(transform_inner, sitk.DisplacementFieldTransform):
+        raise IOError("Transforms must be of type "
+                      "sitk.TransDisplacementFieldTransformform")
+
+    raise RuntimeError(
+        "Composition of displacement fields not implemented yet")
+
+    # Throws error
+    # transform_outer.AddTransform(transform_inner)
+
+
+def compose_affine_transforms(transform_outer, transform_inner):
+    if not isinstance(transform_outer, sitk.Transform) \
+            or not isinstance(transform_inner, sitk.Transform):
+        raise IOError("Transforms must be of type sitk.Transform")
+
+    dim = transform_inner.GetDimension()
+    if dim != transform_outer.GetDimension():
+        raise IOError("Transform dimensions must match")
+
+    A_inner = np.asarray(transform_inner.GetMatrix()).reshape(dim, dim)
+    c_inner = np.asarray(transform_inner.GetCenter())
+    t_inner = np.asarray(transform_inner.GetTranslation())
+
+    A_outer = np.asarray(transform_outer.GetMatrix()).reshape(dim, dim)
+    c_outer = np.asarray(transform_outer.GetCenter())
+    t_outer = np.asarray(transform_outer.GetTranslation())
+
+    A_composite = A_outer.dot(A_inner)
+    c_composite = c_inner
+    t_composite = A_outer.dot(
+        t_inner + c_inner - c_outer) + t_outer + c_outer - c_inner
+
+    if transform_outer.GetName() == transform_inner.GetName():
+        if transform_inner.GetName() == "AffineTransform":
+            transform = sitk.AffineTransform(dim)
+        else:
+            transform = getattr(sitk, transform_inner.GetName())()
+    else:
+        transform = sitk.AffineTransform(dim)
+
+    transform.SetMatrix(A_composite.flatten())
+    transform.SetTranslation(t_composite)
+    transform.SetCenter(c_composite)
+
+    return transform

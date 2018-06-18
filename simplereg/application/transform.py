@@ -44,6 +44,14 @@ def main():
         default=None,
     )
     parser.add_argument(
+        "-c", "--compose",
+        help="Compose two (Simple)ITK transformations T2 and T1 to output "
+        "transform T3(x) = T2(T1)(x)",
+        nargs=3,
+        metavar=("TRANSFORM2", "TRANSFORM1", "OUTPUT_TRANSFORM"),
+        default=None,
+    )
+    parser.add_argument(
         "-inv", "--invert-transform",
         help="Invert a (Simple)ITK transform",
         nargs=2,
@@ -162,6 +170,14 @@ def main():
             image_sitk, transform_sitk)
         dw.DataWriter.write_image(
             transformed_image_sitk, args.image_header[2], args.verbose)
+
+    if args.compose is not None:
+        transform1_sitk = dr.DataReader.read_transform(args.compose[1])
+        transform2_sitk = dr.DataReader.read_transform(args.compose[0])
+        transform_sitk = utils.compose_transforms(
+            transform2_sitk, transform1_sitk)
+        dw.DataWriter.write_transform(
+            transform_sitk, args.compose[2], args.verbose)
 
     if args.invert_transform is not None:
         transform_inv_sitk = dr.DataReader.read_transform(
