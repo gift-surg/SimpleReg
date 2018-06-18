@@ -126,6 +126,7 @@ class NiftyRegToSimpleItkConverter(object):
     @staticmethod
     def convert_regf3d_to_sitk_displacement(displacement_nreg_nib):
 
+        # Account for x maps_to -x and y maps_to -y in ITK
         nda = displacement_nreg_nib.get_data()
         nda[..., 0:2] *= -1
 
@@ -134,15 +135,33 @@ class NiftyRegToSimpleItkConverter(object):
 
         return displacement_sitk_nib
 
+    ##
+    # Convert a (Simple)ITK displacement field to NiftyReg (RegF3D) one
+    # \date       2018-06-18 09:12:04-0600
+    #
+    # RegF3D transformation types NIfTI header encoding:
+    # *- Cubic B-Spline grid: intent_p1 = 5, intent_p2 = 6, intent_p3 = 0
+    # *- Displacement field: intent_p1 = 1, intent_p2 = 0, intent_p3 = 0
+    # *- Deformation field: intent_p1 = 0, intent_p2 = 0, intent_p3 = 0
+    #
+    # \param      displacement_sitk_nib  Displacement field image as
+    #                                    nib.Nifti1Image object
+    #
+    # \return     Displacement field as nib.Nifti1Image object
+    #
     @staticmethod
     def convert_sitk_to_regf3d_displacement(displacement_sitk_nib):
 
+        # Account for x maps_to -x and y maps_to -y in ITK
         nda = displacement_sitk_nib.get_data()
         nda[..., 0:2] *= -1
 
         displacement_nreg_nib = nib.Nifti1Image(
             nda, displacement_sitk_nib.affine, displacement_sitk_nib.header)
 
+        # Update NIfTI header to indicate a displacement field
         displacement_nreg_nib.header['intent_p1'] = 1
+        displacement_nreg_nib.header['intent_p2'] = 0
+        displacement_nreg_nib.header['intent_p3'] = 0
 
         return displacement_nreg_nib
