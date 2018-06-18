@@ -48,7 +48,15 @@ def main():
         help="Compose two (Simple)ITK transformations T2 and T1 to output "
         "transform T3(x) = T2(T1)(x)",
         nargs=3,
-        metavar=("TRANSFORM2", "TRANSFORM1", "OUTPUT_TRANSFORM"),
+        metavar=("TRANSFORM_2", "TRANSFORM_1", "OUTPUT_TRANSFORM"),
+        default=None,
+    )
+    parser.add_argument(
+        "-d", "--datatype",
+        help="Transform datatype of image (or displacement field) data array. "
+        "Numpy datatypes are recognized, e.g. float32, float64 and uint8.",
+        nargs=3,
+        metavar=("IMAGE", "DATATYPE", "OUTPUT_IMAGE"),
         default=None,
     )
     parser.add_argument(
@@ -178,6 +186,12 @@ def main():
             transform2_sitk, transform1_sitk)
         dw.DataWriter.write_transform(
             transform_sitk, args.compose[2], args.verbose)
+
+    if args.datatype is not None:
+        image_nib = dr.DataReader.read_transform(
+            args.datatype[0], nii_as_nib=1)
+        image_nib.header.set_data_dtype(getattr(np, args.datatype[1]))
+        dw.DataWriter.write_transform(image_nib, args.datatype[2])
 
     if args.invert_transform is not None:
         transform_inv_sitk = dr.DataReader.read_transform(
