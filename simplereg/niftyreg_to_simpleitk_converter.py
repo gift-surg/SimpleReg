@@ -130,9 +130,7 @@ class NiftyRegToSimpleItkConverter(object):
         nda[..., 0:2] *= -1
 
         displacement_sitk_nib = nib.Nifti1Image(
-            nda,
-            displacement_nreg_nib.get_affine(),
-            displacement_nreg_nib.get_header())
+            nda, displacement_nreg_nib.affine, displacement_nreg_nib.header)
 
         return displacement_sitk_nib
 
@@ -143,9 +141,7 @@ class NiftyRegToSimpleItkConverter(object):
         nda[..., 0:2] *= -1
 
         displacement_nreg_nib = nib.Nifti1Image(
-            nda,
-            displacement_sitk_nib.get_affine(),
-            displacement_sitk_nib.get_header())
+            nda, displacement_sitk_nib.affine, displacement_sitk_nib.header)
 
         displacement_nreg_nib.header['intent_p1'] = 1
 
