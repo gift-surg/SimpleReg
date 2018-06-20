@@ -20,6 +20,7 @@ from simplereg.niftyreg_to_simpleitk_converter import \
     NiftyRegToSimpleItkConverter as nreg2sitk
 from simplereg.flirt_to_simpleitk_converter import \
     FlirtToSimpleItkConverter as flirt2sitk
+from simplereg.landmark_visualizer import IMPLEMENTED_MARKERS
 
 
 ##
@@ -164,6 +165,14 @@ def main():
         default=None,
     )
     parser.add_argument(
+        "-m", "--marker",
+        help="Marker used to visualize landmark positions. "
+        "Only used for --landmark-to-label and --landmark-to-image. "
+        "Allowed markers are: %s" % ", ".join(IMPLEMENTED_MARKERS),
+        type=str,
+        default="cross",
+    )
+    parser.add_argument(
         "-v", "--verbose",
         help="Turn on/off verbose output",
         type=int,
@@ -271,7 +280,7 @@ def main():
             size=image_sitk.GetSize()
         )
         landmark_visualizer.build_landmark_image_sitk(
-            pattern="cross", radius=2)
+            marker=args.marker, radius=2)
         mask_sitk = landmark_visualizer.get_image_sitk()
         dw.DataWriter.write_image(mask_sitk, args.landmark_to_label[2])
 
@@ -286,7 +295,7 @@ def main():
             size=image_sitk.GetSize()
         )
         landmark_visualizer.build_landmark_image_sitk(
-            pattern="cross", radius=2)
+            marker=args.marker, radius=2)
         image_sitk = landmark_visualizer.annotate_landmarks_on_image_sitk(
             image_sitk)
         dw.DataWriter.write_image(image_sitk, args.landmark_to_image[2])
