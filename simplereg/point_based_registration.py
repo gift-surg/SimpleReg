@@ -152,6 +152,9 @@ class PointBasedRegistration(object):
 # Implementation of quaternion-based algorithm for point-based rigid
 # registration as described in Besl and McKay (1992), Section III.C.
 #
+# Algorithm computes the 3-D rigid body transformation that aligns two sets of
+# points for which correspondence is known.
+#
 # Besl, P. J., & McKay, H. D. (1992). A method for registration of 3-D shapes.
 # IEEE Transactions on Pattern Analysis and Machine Intelligence, 14(2),
 # 239-256.
@@ -227,6 +230,9 @@ class BeslMcKayPointBasedRegistration(PointBasedRegistration):
 ##
 # Implementation of SVD-based algorithm for point-based rigid registration as
 # described in Arun et al. (1987).
+#
+# Algorithm computes the 3-D rigid body transformation that aligns two sets of
+# points for which correspondence is known.
 #
 # Arun, K. S., Huang, T. S., & Blostein, S. D. (1987). Least-Squares Fitting of
 # Two 3-D Point Sets. IEEE Transactions on Pattern Analysis and Machine
@@ -308,6 +314,9 @@ class ArunHuangBlosteinPointBasedRegistration(PointBasedRegistration):
 ##
 # Implementation of Coherent Point Drift algorithm for point set registration
 # as described in Myronenko et al. (2010).
+#
+# Algorithm computes the 3-D rigid body transformation that aligns two sets of
+# points for which correspondence is not known.
 #
 # Myronenko, A., & Xubo Song. (2010). Point Set Registration: Coherent Point
 # Drift. IEEE Transactions on Pattern Analysis and Machine Intelligence,
