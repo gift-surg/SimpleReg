@@ -1,21 +1,15 @@
 #!/usr/bin/env python
 
-import os
 import argparse
-import SimpleITK as sitk
 
 import pysitk.python_helper as ph
-import pysitk.simple_itk_helper as sitkh
 
-import simplereg.utilities as utils
-from simplereg.niftyreg_to_simpleitk_converter import \
-    NiftyRegToSimpleItkConverter as nreg2sitk
-
-ALLOWED_INTERPOLATORS = ["Linear", "NearestNeighbour", "BSpline"]
+import simplereg.resampler
+from simplereg.definitions import ALLOWED_INTERPOLATORS
 
 
 ##
-# Apply SimpleITK transform to image
+# Resample image
 # \date       2018-04-25 11:50:08-0600
 #
 # \return     exit code
@@ -98,59 +92,24 @@ def main():
     if args.fixed == "same":
         args.fixed = args.moving
 
-    if args.interpolator.isdigit():
-        if int(args.interpolator) == 0:
-            interpolator_sitk = sitk.sitkNearestNeighbor
-        elif int(args.interpolator) == 1:
-            interpolator_sitk = sitk.sitkLinear
-        else:
-            raise IOError("Interpolator order not known")
-    else:
-        if args.interpolator in ALLOWED_INTERPOLATORS:
-            interpolator_sitk = getattr(sitk, "sitk%s" % args.interpolator)
-        else:
-            raise IOError("Interpolator not known.")
-
-    # read input
-    fixed_sitk = sitk.ReadImage(args.fixed)
-    moving_sitk = sitk.ReadImage(args.moving)
-    if args.transform:
-        type_transform = ph.strip_filename_extension(args.transform)[1]
-        if type_transform in ["nii", "nii.gz"]:
-            displacement_sitk = sitk.ReadImage(
-                args.transform, sitk.sitkVectorFloat64)
-            transform_sitk = sitk.DisplacementFieldTransform(
-                sitk.Image(displacement_sitk))
-        else:
-            transform_sitk = sitkh.read_transform_sitk(args.transform)
-    else:
-        transform_sitk = getattr(
-            sitk, "Euler%dDTransform" % fixed_sitk.GetDimension())()
-
-    # resample image
-    size, origin, spacing, direction = utils.get_space_resampling_properties(
-        image_sitk=fixed_sitk,
+    resampler = simplereg.resampler.Resampler(
+        path_to_fixed=args.fixed,
+        path_to_moving=args.moving,
+        path_to_transform=args.transform,
+        interpolator=args.interpolator,
         spacing=args.spacing,
+        padding=args.padding,
         add_to_grid=args.add_to_grid,
-        add_to_grid_unit="mm")
-    warped_moving_sitk = sitk.Resample(
-        moving_sitk,
-        size,
-        transform_sitk,
-        interpolator_sitk,
-        origin,
-        spacing,
-        direction,
-        float(args.padding),
-        fixed_sitk.GetPixelIDValue(),
+        verbose=args.verbose,
     )
-
-    # write resampled image
-    sitkh.write_nifti_image_sitk(
-        warped_moving_sitk, args.output, verbose=args.verbose)
+    resampler.run()
+    resampler.write_image(args.output)
 
     if args.verbose:
-        ph.show_niftis([args.output, args.fixed])
+        ph.show_niftis([
+            args.output,
+            args.fixed,
+        ])
 
     return 0
 
