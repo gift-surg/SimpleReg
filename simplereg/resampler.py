@@ -12,6 +12,8 @@ import itk
 import numpy as np
 import SimpleITK as sitk
 
+import niftymic.base.psf as psf
+
 import pysitk.python_helper as ph
 import pysitk.simple_itk_helper as sitkh
 
@@ -53,14 +55,80 @@ class Resampler(object):
         if self._warped_moving_sitk is not None:
             dw.DataWriter.write_image(
                 self._warped_moving_sitk, path_to_output)
+        else:
+            dw.DataWriter.write_image(
+                self._warped_moving_itk, path_to_output)
 
     def run(self):
+        # Possible to use _run_itk for all interpolators. However, loading of
+        # itk library takes noticeably longer. Hence, only use it when required
+        if self._interpolator in ["OrientedGaussian"]:
+            if self._path_to_transform is not None:
+                # This could be implemented for rigid transformations.
+                # For affine, or even displacement fields, it is not quite
+                # clear how a PSF-transformed option shall look like.
+                raise ValueError(
+                    "OrientedGaussian interpolation does not allow a "
+                    "transformation during resampling.")
+            self._run_itk()
+        else:
+            self._run_sitk()
 
-        interpolator_sitk = self._convert_interpolator(self._interpolator)
+    def _run_itk(self):
+        # read input
+        fixed_itk = dr.DataReader.read_image(self._path_to_fixed, as_itk=1)
+        moving_itk = dr.DataReader.read_image(self._path_to_moving, as_itk=1)
 
+        # get image resampling information
+        size, origin, spacing, direction = self.get_space_resampling_properties(
+            image_sitk=fixed_itk,
+            spacing=self._spacing,
+            add_to_grid=self._add_to_grid,
+            add_to_grid_unit="mm")
+
+        if self._path_to_transform is not None:
+            transform_itk = dr.DataReader.read_transform(
+                self._path_to_transform, as_itk=1)
+        else:
+            transform_itk = getattr(
+                itk, "Euler%dDTransform" % fixed_itk.GetImageDimension()).New()
+
+        interpolator_itk = self._convert_interpolator_itk(
+            fixed_itk,
+            moving_itk,
+            spacing,
+            self._interpolator,
+            alpha_cut=3,
+        )
+
+        # resample image
+        resampler_itk = itk.ResampleImageFilter[
+            type(fixed_itk), type(moving_itk)].New()
+        resampler_itk.SetInput(moving_itk)
+        resampler_itk.SetSize(size)
+        resampler_itk.SetTransform(transform_itk)
+        resampler_itk.SetInterpolator(interpolator_itk)
+        resampler_itk.SetOutputOrigin(origin)
+        resampler_itk.SetOutputSpacing(spacing)
+        resampler_itk.SetOutputDirection(fixed_itk.GetDirection())
+        # resampler_itk.SetDefaultPixelValue(self._padding)
+        resampler_itk.UpdateLargestPossibleRegion()
+        resampler_itk.Update()
+        self._warped_moving_itk = resampler_itk.GetOutput()
+        self._warped_moving_itk.DisconnectPipeline()
+
+    def _run_sitk(self):
         # read input
         fixed_sitk = dr.DataReader.read_image(self._path_to_fixed)
         moving_sitk = dr.DataReader.read_image(self._path_to_moving)
+
+        # get image resampling information
+        size, origin, spacing, direction = self.get_space_resampling_properties(
+            image_sitk=fixed_sitk,
+            spacing=self._spacing,
+            add_to_grid=self._add_to_grid,
+            add_to_grid_unit="mm")
+
         if self._path_to_transform is not None:
             transform_sitk = dr.DataReader.read_transform(
                 self._path_to_transform)
@@ -69,16 +137,11 @@ class Resampler(object):
                 sitk, "Euler%dDTransform" % fixed_sitk.GetDimension())()
 
         # resample image
-        size, origin, spacing, direction = self.get_space_resampling_properties(
-            image_sitk=fixed_sitk,
-            spacing=self._spacing,
-            add_to_grid=self._add_to_grid,
-            add_to_grid_unit="mm")
         self._warped_moving_sitk = sitk.Resample(
             moving_sitk,
             size,
             transform_sitk,
-            interpolator_sitk,
+            self._convert_interpolator_sitk(self._interpolator),
             origin,
             spacing,
             direction,
@@ -87,28 +150,125 @@ class Resampler(object):
         )
 
     @staticmethod
-    def _convert_interpolator(interpolator):
+    def _convert_interpolator_sitk(interpolator):
         if interpolator.isdigit():
             if int(interpolator) == 0:
-                interpolator_sitk = sitk.sitkNearestNeighbor
+                interpolator = "NearestNeighbor"
             elif int(interpolator) == 1:
-                interpolator_sitk = sitk.sitkLinear
+                interpolator = "Linear"
             else:
-                raise IOError("Interpolator order not known")
+                raise ValueError(
+                    "Interpolator order not known. Allowed options are: 0, 1")
+        if interpolator not in ALLOWED_INTERPOLATORS:
+            raise ValueError(
+                "Interpolator not known. Allowed options are: %s" % (
+                    ", ".join(ALLOWED_INTERPOLATORS)))
+
+        return getattr(sitk, "sitk%s" % interpolator)
+
+    def _convert_interpolator_itk(
+        self,
+        fixed_itk,
+        moving_itk,
+        spacing,
+        interpolator,
+        alpha_cut,
+        pixel_type=itk.D,
+    ):
+        if interpolator.isdigit():
+            if int(interpolator) == 0:
+                interpolator = "NearestNeighbor"
+            elif int(interpolator) == 1:
+                interpolator = "Linear"
+            else:
+                raise ValueError(
+                    "Interpolator order not known. Allowed options are: 0, 1")
+        if interpolator not in ALLOWED_INTERPOLATORS:
+            raise ValueError(
+                "Interpolator not known. Allowed options are: %s" % (
+                    ", ".join(ALLOWED_INTERPOLATORS)))
+
+        if interpolator == "OrientedGaussian":
+            cov = self._get_oriented_psf_covariance(
+                fixed_itk, moving_itk, spacing)
+            interpolator_itk = itk.OrientedGaussianInterpolateImageFunction[
+                type(fixed_itk), pixel_type].New()
+            interpolator_itk.SetCovariance(cov.flatten())
+            interpolator_itk.SetAlpha(alpha_cut)
         else:
-            if interpolator in ALLOWED_INTERPOLATORS:
-                interpolator_sitk = getattr(
-                    sitk, "sitk%s" % interpolator)
-            else:
-                raise IOError("Interpolator not known.")
-        return interpolator_sitk
+            interpolator_itk = getattr(
+                itk, "%sInterpolateImageFunction" % interpolator)[
+                type(fixed_itk), pixel_type].New()
+        return interpolator_itk
+
+    def _get_oriented_psf_covariance(self, fixed_itk, moving_itk, spacing):
+
+        # Fixed axis-aligned covariance matrix representing the PSF
+        cov = self._get_psf_covariance(spacing)
+
+        # Express fixed axis-aligned PSF in moving space coordinates
+        fixed_direction = sitkh.get_sitk_from_itk_direction(
+            fixed_itk.GetDirection())
+        moving_direction = sitkh.get_sitk_from_itk_direction(
+            moving_itk.GetDirection())
+        U = self._get_rotation_matrix(fixed_direction, moving_direction)
+        cov_2 = psf.PSF().get_covariance_matrix_in_reconstruction_space_sitk(
+            moving_direction, fixed_direction, spacing)
+
+        cov = U.dot(cov).dot(U.transpose())
+
+        return cov
+
+    ##
+    # Compute (axis aligned) covariance matrix from spacing. The PSF is
+    # modelled as Gaussian with
+    #  *- FWHM = 1.2*in-plane-resolution (in-plane)
+    #  *- FWHM = slice thickness (through-plane)
+    # \date       2017-11-01 16:16:36+0000
+    #
+    # \param      spacing  3D array containing in-plane and through-plane
+    #                      dimensions
+    #
+    # \return     (axis aligned) covariance matrix representing PSF modelled
+    #             Gaussian as 3x3 np.array
+    #
+    @staticmethod
+    def _get_psf_covariance(spacing):
+        sigma2 = np.zeros_like(np.array(spacing))
+
+        # Compute Gaussian to approximate in-plane PSF:
+        sigma2[0:2] = (1.2 * spacing[0:2])**2 / (8 * np.log(2))
+
+        # Compute Gaussian to approximate through-plane PSF:
+        if sigma2.size == 3:
+            sigma2[2] = spacing[2]**2 / (8 * np.log(2))
+
+        return np.diag(sigma2)
+
+    ##
+    # Gets the relative rotation matrix to express fixed-axis aligned
+    # covariance matrix in coordinates of moving image
+    # \date       2016-10-14 16:37:57+0100
+    #
+    # \param      fixed_direction   fixed image direction
+    # \param      moving_direction  moving image direction
+    #
+    # \return     The relative rotation matrix as 3x3 numpy array
+    #
+    @staticmethod
+    def _get_rotation_matrix(fixed_direction, moving_direction):
+        dim = np.sqrt(np.array(fixed_direction).size).astype(np.uint8)
+        fixed_direction = np.array(fixed_direction).reshape(dim, dim)
+        moving_direction = np.array(moving_direction).reshape(dim, dim)
+
+        return moving_direction.transpose().dot(fixed_direction)
 
     ##
     # Gets the space resampling properties given an image an optional
     # spacing/grid adjustment desires.
     # \date       2018-05-03 13:04:05-0600
     #
-    # \param      image_sitk        Image as sitk.Image object
+    # \param      image_sitk        Image as sitk.Image or itk.Image object
     # \param      spacing           Spacing for resampling space. If scalar,
     #                               isotropic resampling grid is assumed
     # \param      add_to_grid       Additional grid extension/reduction in each
@@ -128,16 +288,20 @@ class Resampler(object):
         add_to_grid_unit="mm",
     ):
 
-        if not isinstance(image_sitk, sitk.Image):
-            raise IOError("Image must be of type sitk.Image")
-
-        dim = image_sitk.GetDimension()
+        if not isinstance(image_sitk, (sitk.Image, itk.Image.D3, itk.Image.SS3)):
+            raise IOError("Image must be of type sitk.Image or itk.Image")
 
         # Read input image information:
         spacing_in = np.array(image_sitk.GetSpacing())
-        size_in = np.array(image_sitk.GetSize()).astype(int)
         origin_out = np.array(image_sitk.GetOrigin())
-        direction_out = np.array(image_sitk.GetDirection())
+        if isinstance(image_sitk, sitk.Image):
+            size_in = np.array(image_sitk.GetSize()).astype(int)
+            direction_out = np.array(image_sitk.GetDirection())
+        else:
+            size_in = np.array(image_sitk.GetBufferedRegion().GetSize())
+            direction_out = np.array(
+                sitkh.get_sitk_from_itk_direction(image_sitk.GetDirection()))
+        dim = len(origin_out)
 
         # Check given spacing information for grid resampling
         if spacing is not None:

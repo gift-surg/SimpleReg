@@ -16,7 +16,7 @@ ALLOWED_TRANSFORMS_DISPLACEMENTS = ["nii.gz", "nii"]
 ALLOWED_LANDMARKS = ["txt"]
 ALLOWED_INTERPOLATORS = [
     "Linear",
-    "NearestNeighbour",
+    "NearestNeighbor",
     "BSpline",
     "OrientedGaussian",
 ]

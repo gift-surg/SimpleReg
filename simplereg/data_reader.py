@@ -7,6 +7,7 @@
 
 import os
 import sys
+import itk
 import numpy as np
 import nibabel as nib
 import SimpleITK as sitk
@@ -32,7 +33,7 @@ class DataReader(object):
     # \return     Image as sitk.Image or itk.Image object
     #
     @staticmethod
-    def read_image(path_to_file, itk=0):
+    def read_image(path_to_file, as_itk=0):
 
         if not ph.file_exists(path_to_file):
             raise IOError("Image file '%s' not found" % path_to_file)
@@ -43,8 +44,8 @@ class DataReader(object):
                           ", or ".join(ALLOWED_IMAGES))
 
         # Read as itk.Image object
-        if itk:
-            image = sitkh.read_itk_image(path_to_file)
+        if as_itk:
+            image = itk.imread(path_to_file)
 
         # Read as sitk.Image object
         else:
@@ -78,7 +79,7 @@ class DataReader(object):
     # \return     Transform as type np.array, sitk.Image or nib.Nifti
     #
     @staticmethod
-    def read_transform(path_to_file, inverse=0, nii_as_nib=0):
+    def read_transform(path_to_file, inverse=0, nii_as_nib=0, as_itk=0):
 
         if not ph.file_exists(path_to_file):
             raise IOError("Transform file '%s' not found" % path_to_file)
@@ -92,8 +93,12 @@ class DataReader(object):
                               ", ".join(ALLOWED_TRANSFORMS_DISPLACEMENTS)))
 
         if extension in ALLOWED_TRANSFORMS:
-            transform_sitk = sitkh.read_transform_sitk(
-                path_to_file, inverse=inverse)
+            if as_itk:
+                tranform_sitk = sitk.read_transform_itk(
+                    path_to_file, inverse=inverse)
+            else:
+                transform_sitk = sitkh.read_transform_sitk(
+                    path_to_file, inverse=inverse)
         else:
             # Used for sitk_to_nreg conversion only
             if nii_as_nib:
