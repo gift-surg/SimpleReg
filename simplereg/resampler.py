@@ -103,7 +103,7 @@ class Resampler(object):
 
         # resample image
         resampler_itk = itk.ResampleImageFilter[
-            type(fixed_itk), type(moving_itk)].New()
+            type(moving_itk), type(fixed_itk)].New()
         resampler_itk.SetInput(moving_itk)
         resampler_itk.SetSize(size)
         resampler_itk.SetTransform(transform_itk)
@@ -111,7 +111,7 @@ class Resampler(object):
         resampler_itk.SetOutputOrigin(origin)
         resampler_itk.SetOutputSpacing(spacing)
         resampler_itk.SetOutputDirection(fixed_itk.GetDirection())
-        # resampler_itk.SetDefaultPixelValue(self._padding)
+        resampler_itk.SetDefaultPixelValue(self._padding)
         resampler_itk.UpdateLargestPossibleRegion()
         resampler_itk.Update()
         self._warped_moving_itk = resampler_itk.GetOutput()
