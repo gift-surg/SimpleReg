@@ -210,9 +210,6 @@ class Resampler(object):
         moving_direction = sitkh.get_sitk_from_itk_direction(
             moving_itk.GetDirection())
         U = self._get_rotation_matrix(fixed_direction, moving_direction)
-        cov_2 = psf.PSF().get_covariance_matrix_in_reconstruction_space_sitk(
-            moving_direction, fixed_direction, spacing)
-
         cov = U.dot(cov).dot(U.transpose())
 
         return cov
