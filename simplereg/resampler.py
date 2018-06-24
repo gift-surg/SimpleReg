@@ -12,8 +12,6 @@ import itk
 import numpy as np
 import SimpleITK as sitk
 
-import niftymic.base.psf as psf
-
 import pysitk.python_helper as ph
 import pysitk.simple_itk_helper as sitkh
 
