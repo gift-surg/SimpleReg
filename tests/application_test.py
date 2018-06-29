@@ -16,6 +16,7 @@ import SimpleITK as sitk
 import pysitk.python_helper as ph
 import pysitk.simple_itk_helper as sitkh
 
+import simplereg.utilities as utils
 import simplereg.data_reader as dr
 from simplereg.definitions import DIR_TMP, DIR_TEST, DIR_DATA
 
@@ -185,3 +186,52 @@ class ApplicationTest(unittest.TestCase):
     # TODO
     def test_transform_mask_to_landmark(self):
         pass
+
+    def test_resample_bspline_spacing_atg(self):
+        image = os.path.join(DIR_DATA, "3D_SheppLoganPhantom_64.nii.gz")
+        reference = os.path.join(
+            DIR_TEST, "3D_SheppLoganPhantom_64_BSpline_s113_atg-4.nii.gz")
+
+        cmd_args = ["python simplereg_resample.py"]
+        cmd_args.append("-m %s" % image)
+        cmd_args.append("-f same")
+        cmd_args.append("-i BSpline")
+        cmd_args.append("-t %s" % self.transform_3D_sitk)
+        cmd_args.append("-s 1 1 3")
+        cmd_args.append("-atg -4")
+        cmd_args.append("-o %s" % self.output_image)
+        self.assertEqual(ph.execute_command(" ".join(cmd_args)), 0)
+
+        res_sitk = sitk.ReadImage(self.output_image)
+        ref_sitk = sitk.ReadImage(reference)
+        diff_nda = sitk.GetArrayFromImage(res_sitk - ref_sitk)
+        self.assertAlmostEqual(
+            np.linalg.norm(diff_nda), 0, places=self.precision)
+
+    def test_resample_oriented_gaussian_spacing_atg(self):
+        moving = os.path.join(DIR_DATA, "3D_SheppLoganPhantom_64.nii.gz")
+        fixed = os.path.join(DIR_TMP, "3D_SheppLoganPhantom_64_rotated.nii.gz")
+        rotation = sitk.Euler3DTransform()
+        rotation.SetRotation(0.3, -0.2, -0.3)
+        rotation.SetCenter((-40, -25, 17))
+        image_rotated = utils.update_image_header(
+            sitk.ReadImage(moving), rotation)
+        sitk.WriteImage(image_rotated, fixed)
+
+        reference = os.path.join(
+            DIR_TEST, "3D_SheppLoganPhantom_64_OrientedGaussian_s113_atg4.nii.gz")
+
+        cmd_args = ["python simplereg_resample.py"]
+        cmd_args.append("-m %s" % moving)
+        cmd_args.append("-f %s" % fixed)
+        cmd_args.append("-i OrientedGaussian")
+        cmd_args.append("-s 1 1 3")
+        cmd_args.append("-atg 4")
+        cmd_args.append("-o %s" % self.output_image)
+        self.assertEqual(ph.execute_command(" ".join(cmd_args)), 0)
+
+        res_sitk = sitk.ReadImage(self.output_image)
+        ref_sitk = sitk.ReadImage(reference)
+        diff_nda = sitk.GetArrayFromImage(res_sitk - ref_sitk)
+        self.assertAlmostEqual(
+            np.linalg.norm(diff_nda), 0, places=self.precision)

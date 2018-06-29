@@ -7,6 +7,7 @@
 
 import os
 import sys
+import itk
 import numpy as np
 import nibabel as nib
 import SimpleITK as sitk
@@ -22,8 +23,17 @@ from simplereg.definitions import ALLOWED_TRANSFORMS_DISPLACEMENTS
 
 class DataReader(object):
 
+    ##
+    # Reads an image and returns either an sitk.Image or itk.Image object.
+    # \date       2018-06-23 16:25:53-0600
+    #
+    # \param      path_to_file  The path to file
+    # \param      itk           Select between sitk.Image or itk.Image object; bool
+    #
+    # \return     Image as sitk.Image or itk.Image object
+    #
     @staticmethod
-    def read_image(path_to_file):
+    def read_image(path_to_file, as_itk=0):
 
         if not ph.file_exists(path_to_file):
             raise IOError("Image file '%s' not found" % path_to_file)
@@ -33,7 +43,15 @@ class DataReader(object):
             raise IOError("Image file extension must be of type %s " %
                           ", or ".join(ALLOWED_IMAGES))
 
-        return sitk.ReadImage(path_to_file)
+        # Read as itk.Image object
+        if as_itk:
+            image = itk.imread(path_to_file)
+
+        # Read as sitk.Image object
+        else:
+            image = sitk.ReadImage(path_to_file)
+
+        return image
 
     @staticmethod
     def read_landmarks(path_to_file):
@@ -61,7 +79,7 @@ class DataReader(object):
     # \return     Transform as type np.array, sitk.Image or nib.Nifti
     #
     @staticmethod
-    def read_transform(path_to_file, inverse=0, nii_as_nib=0):
+    def read_transform(path_to_file, inverse=0, nii_as_nib=0, as_itk=0):
 
         if not ph.file_exists(path_to_file):
             raise IOError("Transform file '%s' not found" % path_to_file)
@@ -75,8 +93,12 @@ class DataReader(object):
                               ", ".join(ALLOWED_TRANSFORMS_DISPLACEMENTS)))
 
         if extension in ALLOWED_TRANSFORMS:
-            transform_sitk = sitkh.read_transform_sitk(
-                path_to_file, inverse=inverse)
+            if as_itk:
+                tranform_sitk = sitk.read_transform_itk(
+                    path_to_file, inverse=inverse)
+            else:
+                transform_sitk = sitkh.read_transform_sitk(
+                    path_to_file, inverse=inverse)
         else:
             # Used for sitk_to_nreg conversion only
             if nii_as_nib:

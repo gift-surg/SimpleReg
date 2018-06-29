@@ -29,8 +29,16 @@ class DataWriter(object):
         if extension not in ALLOWED_IMAGES:
             raise IOError("Image file extension must be of type %s " %
                           ", or ".join(ALLOWED_IMAGES))
-        sitkh.write_nifti_image_sitk(
-            image_sitk=image_sitk, path_to_file=path_to_file, verbose=verbose)
+        if isinstance(image_sitk, sitk.Image):
+            sitkh.write_nifti_image_sitk(
+                image_sitk=image_sitk,
+                path_to_file=path_to_file,
+                verbose=verbose)
+        else:
+            sitkh.write_nifti_image_itk(
+                image_itk=image_sitk,
+                path_to_file=path_to_file,
+                verbose=verbose)
 
     @staticmethod
     def write_landmarks(landmarks_nda, path_to_file, verbose=0):

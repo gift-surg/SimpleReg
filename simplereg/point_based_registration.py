@@ -3,7 +3,7 @@
 # \brief      Class to perform rigid/affine registration of two 3D point sets
 #
 # \author     Michael Ebner (michael.ebner.14@ucl.ac.uk)
-# \date       April 2017
+# \date       April 2018
 #
 
 
