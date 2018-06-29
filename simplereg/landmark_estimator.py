@@ -104,7 +104,13 @@ class LandmarkEstimator(object):
             (n_landmarks, image_label_sitk.GetDimension()))
         for i in range(n_landmarks):
             points = np.array(np.where(labels_nda == i + 1))
-            self._landmarks_voxel_space[i, :] = np.mean(points, axis=1)
+
+            # if label not found, set associated landmark coordinates to NaNs
+            if points.size == 0:
+                self._landmarks_voxel_space[i, :] = np.nan
+
+            else:
+                self._landmarks_voxel_space[i, :] = np.mean(points, axis=1)
 
         # sitk -> nda stores as z, y, x
         self._landmarks_voxel_space = self._landmarks_voxel_space[:, ::-1]

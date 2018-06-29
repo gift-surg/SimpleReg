@@ -68,8 +68,12 @@ class LandmarkVisualizer(object):
             landmark = self._landmarks_nda[i, :]
             index = foo.TransformPhysicalPointToIndex(landmark)[::-1]
 
+            if True in np.isnan(landmark):
+                continue
+
             if marker == "dot":
                 nda[index] = i + 1
+
             else:
                 marker_ = self._get_marker[marker](
                     radius=radius,
@@ -141,6 +145,9 @@ class LandmarkVisualizer(object):
 
         indices = np.array(np.where(marker == 1)) - a
         indices = tuple(indices + index[..., np.newaxis])
-        nda[indices] = value
+        try:
+            nda[indices] = value
+        except:
+            pass
 
         return nda
