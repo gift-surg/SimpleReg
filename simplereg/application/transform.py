@@ -173,6 +173,14 @@ def main():
         default="cross",
     )
     parser.add_argument(
+        "-r", "--radius",
+        help="Radius of marker used to visualize landmark positions. "
+        "Only used for --landmark-to-label and --landmark-to-image. "
+        "If marker is 'dot', this setting is ignored.",
+        type=int,
+        default=2,
+    )
+    parser.add_argument(
         "-v", "--verbose",
         help="Turn on/off verbose output",
         type=int,
@@ -280,7 +288,7 @@ def main():
             size=image_sitk.GetSize()
         )
         landmark_visualizer.build_landmark_image_sitk(
-            marker=args.marker, radius=2)
+            marker=args.marker, radius=args.radius)
         mask_sitk = landmark_visualizer.get_image_sitk()
         dw.DataWriter.write_image(mask_sitk, args.landmark_to_label[2])
 
@@ -295,7 +303,7 @@ def main():
             size=image_sitk.GetSize()
         )
         landmark_visualizer.build_landmark_image_sitk(
-            marker=args.marker, radius=2)
+            marker=args.marker, radius=args.radius)
         image_sitk = landmark_visualizer.annotate_landmarks_on_image_sitk(
             image_sitk)
         dw.DataWriter.write_image(image_sitk, args.landmark_to_image[2])
