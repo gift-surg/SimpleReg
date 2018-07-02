@@ -370,7 +370,7 @@ class Resampler(object):
             add_to_grid=None,
             add_to_grid_unit="mm"):
 
-        size, origin, spacing, direction = self.get_space_resampling_properties(
+        size, origin, spacing, direction = Resampler.get_space_resampling_properties(
             image_sitk=image_sitk, spacing=spacing, add_to_grid=add_to_grid,
             add_to_grid_unit=add_to_grid_unit)
 
