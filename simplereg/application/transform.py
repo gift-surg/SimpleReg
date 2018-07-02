@@ -165,6 +165,14 @@ def main():
         default=None,
     )
     parser.add_argument(
+        "-label2bound", "--label-to-boundary",
+        help="Convert labels to boundaries using binary erosion",
+        metavar=("LABEL", "OUTPUT_BOUNDARY"),
+        type=str,
+        nargs=2,
+        default=None,
+    )
+    parser.add_argument(
         "-m", "--marker",
         help="Marker used to visualize landmark positions. "
         "Only used for --landmark-to-label and --landmark-to-image. "
@@ -307,6 +315,10 @@ def main():
         image_sitk = landmark_visualizer.annotate_landmarks_on_image_sitk(
             image_sitk)
         dw.DataWriter.write_image(image_sitk, args.landmark_to_image[2])
+
+    if args.label_to_boundary:
+        utils.convert_label_to_boundary(
+            args.label_to_boundary[0], args.label_to_boundary[1])
 
     return 0
 

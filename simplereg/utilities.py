@@ -9,10 +9,12 @@ import os
 import numpy as np
 import nibabel as nib
 import SimpleITK as sitk
+import scipy.ndimage.morphology
 
 import pysitk.python_helper as ph
 import pysitk.simple_itk_helper as sitkh
 
+import simplereg.data_writer as dw
 from simplereg.definitions import DIR_TMP
 
 
@@ -105,6 +107,34 @@ def split_labels(path_to_labels, dimension, path_to_output):
         labels_5d_sitk.SetSpacing(labels_sitk.GetSpacing())
         labels_5d_sitk.SetDirection(labels_sitk.GetDirection())
         sitkh.write_nifti_image_sitk(labels_5d_sitk, path_to_output)
+
+
+##
+# Convert a label to its boundaries using binary erosion
+# \date       2018-07-02 15:42:01-0600
+#
+# \param      path_to_labels  Path to multi-label mask
+# \param      path_to_output  Path to output multi-label boundary mask
+# \param      iterations      Number of binary erosion operations
+#
+def convert_label_to_boundary(path_to_labels, path_to_output, iterations=1):
+    labels_sitk = sitk.ReadImage(path_to_labels)
+    nda_labels = sitk.GetArrayFromImage(labels_sitk)
+    nda_labels_boundary = np.zeros_like(nda_labels)
+
+    for i in range(nda_labels.max()):
+        label = i + 1
+        nda_mask = np.zeros_like(nda_labels)
+        nda_mask[np.where(nda_labels == label)] = 1
+        nda_mask_boundary = nda_mask - \
+            scipy.ndimage.morphology.binary_erosion(
+                nda_mask, iterations=iterations)
+        nda_labels_boundary += label * nda_mask_boundary
+
+    labels_boundary_sitk = sitk.GetImageFromArray(nda_labels_boundary)
+    labels_boundary_sitk.CopyInformation(labels_sitk)
+
+    dw.DataWriter.write_image(labels_boundary_sitk, path_to_output)
 
 
 def compose_transforms(transform_outer, transform_inner):
