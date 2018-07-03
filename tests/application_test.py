@@ -227,6 +227,7 @@ class ApplicationTest(unittest.TestCase):
         cmd_args.append("-i OrientedGaussian")
         cmd_args.append("-s 1 1 3")
         cmd_args.append("-atg 4")
+        cmd_args.append("-p -1000")
         cmd_args.append("-o %s" % self.output_image)
         self.assertEqual(ph.execute_command(" ".join(cmd_args)), 0)
 
