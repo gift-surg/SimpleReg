@@ -88,19 +88,20 @@ class NiftyRegToSimpleItkConverter(object):
         return matrix_nda
 
     @staticmethod
-    def convert_regaladin_to_sitk_transform(matrix_nda):
+    def convert_regaladin_to_sitk_transform(matrix_nda, dim=None):
         if matrix_nda.shape != (4, 4):
             raise IOError("matrix array must be of shape (4, 4)")
 
         if np.sum(np.abs(matrix_nda[-1, :] - np.array([0, 0, 0, 1]))):
             raise IOError("last row of matrix must be [0, 0, 0, 1]")
 
-        # retrieve dimension
-        nda_2D = np.array([[0, 0, 1, 0], [0, 0, 0, 1]])
-        if np.sum(np.abs(matrix_nda[2:, 0:] - nda_2D)) < 1e-6:
-            dim = 2
-        else:
-            dim = 3
+        # retrieve dimension if not given
+        if dim is None:
+            nda_2D = np.array([[0, 0, 1, 0], [0, 0, 0, 1]])
+            if np.sum(np.abs(matrix_nda[2:, 0:] - nda_2D)) < 1e-12:
+                dim = 2
+            else:
+                dim = 3
 
         # retrieve (dim x dim) matrix and translation
         A = matrix_nda[0:dim, 0:dim]
