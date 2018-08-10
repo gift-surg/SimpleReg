@@ -120,6 +120,14 @@ def split_labels(path_to_labels, dimension, path_to_output):
 def convert_label_to_boundary(path_to_labels, path_to_output, iterations=1):
     labels_sitk = sitk.ReadImage(path_to_labels)
     nda_labels = sitk.GetArrayFromImage(labels_sitk)
+
+    if nda_labels.dtype != 'uint8' and nda_labels.dtype != 'uint16':
+        raise ValueError(
+            "Label data array must be of type integer. "
+            "If you are sure that the provided image is the correct label "
+            "you can convert the data type using "
+            "simplereg_transform -d path-to-label uint8 path-to-label_out")
+
     nda_labels_boundary = np.zeros_like(nda_labels)
 
     for i in range(nda_labels.max()):
