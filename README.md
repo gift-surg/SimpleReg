@@ -57,6 +57,6 @@ This work is partially funded by the UCL [Engineering and Physical Sciences Rese
 [simplereg-dependencies]: https://github.com/gift-surg/SimpleReg/wikis/simplereg-dependencies
 [pysitk]: https://github.com/gift-surg/PySiTK
 [wrapitk]: https://itk.org/Wiki/ITK/WrapITK_Status
-[niftyreg]: https://cmiclab.cs.ucl.ac.uk/mmodat/niftyreg/wikis/home
+[niftyreg]: https://github.com/KCL-BMEIS/niftyreg
 [fsl]: https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/
 [simpleitk]: http://www.simpleitk.org/
