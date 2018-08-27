@@ -56,7 +56,7 @@ def main():
             ", ".join(ALLOWED_INTERPOLATORS)),
         type=str,
         required=0,
-        default="Linear",
+        default="BSpline",
     )
     parser.add_argument(
         "-p", "--padding",
