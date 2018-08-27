@@ -15,7 +15,7 @@ long_description = "This package contains the wrapping of FLIRT and NiftyReg "
 "to Python."
 
 setup(name='SimpleReg',
-      version='0.2rc1',
+      version='0.2',
       description='Wrapped registration tools including FLIRT and NiftyReg',
       long_description=long_description,
       url='https://github.com/gift-surg/SimpleReg',
@@ -24,10 +24,13 @@ setup(name='SimpleReg',
       license='BSD-3-Clause',
       packages=['simplereg'],
       install_requires=[
-          "pysitk>=0.1",
+          "pysitk>=0.2",
           "numpy>=1.13.1",
           "SimpleITK>=1.0.1",
           "nipype>=0.13.1",
+          "six>=1.10.0",
+          "scikit_learn>=0.19.1",
+          "scikit_image>=0.14.0",
       ],
       zip_safe=False,
       keywords='development registration',
@@ -45,5 +48,11 @@ setup(name='SimpleReg',
           'Programming Language :: Python :: 2',
           'Programming Language :: Python :: 2.7',
       ],
-
+      entry_points={
+          'console_scripts': [
+              'simplereg_transform = simplereg.application.transform:main',
+              'simplereg_resample = simplereg.application.resample:main',
+              'simplereg_register_landmarks = simplereg.application.register_landmarks:main',
+          ],
+      },
       )

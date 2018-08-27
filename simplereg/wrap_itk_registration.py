@@ -7,6 +7,7 @@
 # Import libraries
 import os
 import sys
+import six
 import itk
 import SimpleITK as sitk
 
@@ -190,7 +191,7 @@ class WrapItkRegistration(object):
         if self._optimizer == "RegularStepGradientDescent":
             optimizer_type = itk.RegularStepGradientDescentOptimizer
             optimizer = optimizer_type.New()
-            for key, value in self._optimizer_params.iteritems():
+            for key, value in six.iteritems(self._optimizer_params):
                 if key == "LearningRate":
                     continue
                 eval("optimizer.Set%s(%g)" % (key, value))
@@ -326,7 +327,7 @@ class WrapItkRegistration(object):
             optimizer_type = itk.RegularStepGradientDescentOptimizerv4[
                 self._pixel_type]
             optimizer = optimizer_type.New()
-            for key, value in self._optimizer_params.iteritems():
+            for key, value in six.iteritems(self._optimizer_params):
                 eval("optimizer.Set%s(%g)" % (key, value))
 
         # elif self._optimizer == "QuasiNewton":

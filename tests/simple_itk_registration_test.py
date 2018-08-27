@@ -12,7 +12,7 @@ import unittest
 
 import pysitk.simple_itk_helper as sitkh
 
-from simplereg.definitions import DIR_TEST
+from simplereg.definitions import DIR_DATA
 import simplereg.simple_itk_registration as sitkreg
 
 
@@ -24,21 +24,21 @@ class SimpleItkRegistrationTest(unittest.TestCase):
 
         # ----------------------------------2D---------------------------------
         self.fixed_sitk_2D = sitk.ReadImage(
-            os.path.join(DIR_TEST, "2D_Brain_Target.png"), sitk.sitkFloat64)
+            os.path.join(DIR_DATA, "2D_Brain_Target.png"), sitk.sitkFloat64)
         self.fixed_sitk_mask_2D = sitk.ReadImage(
-            os.path.join(DIR_TEST, "2D_Brain_Target_mask.png"), sitk.sitkUInt8)
+            os.path.join(DIR_DATA, "2D_Brain_Target_mask.png"), sitk.sitkUInt8)
 
         self.moving_sitk_2D = sitk.ReadImage(
-            os.path.join(DIR_TEST, "2D_Brain_Source.png"), sitk.sitkFloat64)
+            os.path.join(DIR_DATA, "2D_Brain_Source.png"), sitk.sitkFloat64)
         self.moving_sitk_mask_2D = sitk.ReadImage(
-            os.path.join(DIR_TEST, "2D_Brain_Source_mask.png"), sitk.sitkUInt8)
+            os.path.join(DIR_DATA, "2D_Brain_Source_mask.png"), sitk.sitkUInt8)
 
         # ---------------------------------3D----------------------------------
         self.fixed_sitk_3D = sitk.ReadImage(
-            os.path.join(DIR_TEST, "3D_Brain_AD.nii.gz"))
+            os.path.join(DIR_DATA, "3D_Brain_Source.nii.gz"))
 
         self.moving_sitk_3D = sitk.ReadImage(
-            os.path.join(DIR_TEST, "3D_Brain_Template.nii.gz"))
+            os.path.join(DIR_DATA, "3D_Brain_Target.nii.gz"))
 
     def tearDown(self):
         print("Computational time = %s" % (

@@ -7,7 +7,7 @@ SimpleReg is a Python-based open-source toolkit that provides the interface to v
 * [FLIRT][fsl]
 * [ITK_NiftyMIC][itkniftymic] as an extension to [WrapITK][wrapitk]
 
-Please not that currently **only Python 2** is supported.
+Please note that currently **only Python 2** is supported.
 
 The algorithm and software were developed by [Michael Ebner][mebner] at the [Translational Imaging Group][tig] in the [Centre for Medical Image Computing][cmic] at [University College London (UCL)][ucl].
 
@@ -57,6 +57,6 @@ This work is partially funded by the UCL [Engineering and Physical Sciences Rese
 [simplereg-dependencies]: https://github.com/gift-surg/SimpleReg/wikis/simplereg-dependencies
 [pysitk]: https://github.com/gift-surg/PySiTK
 [wrapitk]: https://itk.org/Wiki/ITK/WrapITK_Status
-[niftyreg]: https://cmiclab.cs.ucl.ac.uk/mmodat/niftyreg/wikis/home
+[niftyreg]: https://github.com/KCL-BMEIS/niftyreg/wiki
 [fsl]: https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/
 [simpleitk]: http://www.simpleitk.org/

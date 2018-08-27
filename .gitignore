@@ -1,5 +1,9 @@
+data/tests
 *.pyc
 *.egg-info
+build
 html
 latex
-
+.idea
+*.wiki
+/.project

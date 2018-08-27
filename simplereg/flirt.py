@@ -1,3 +1,4 @@
+##
 # \file FLIRT.py
 # \brief      This class makes FLIRT accessible via Python
 #
@@ -16,9 +17,11 @@ import nipype.interfaces.c3
 import pysitk.python_helper as ph
 import pysitk.simple_itk_helper as sitkh
 
+import simplereg.utilities as utils
 from simplereg.definitions import DIR_TMP
 from simplereg.wrapper_registration import WrapperRegistration
-
+from simplereg.flirt_to_simpleitk_converter import \
+    FlirtToSimpleItkConverter as flirt2sitk
 
 class FLIRT(WrapperRegistration):
 
@@ -91,7 +94,8 @@ class FLIRT(WrapperRegistration):
         flt.run()
 
         # Read warped image
-        self._warped_moving_sitk = sitk.ReadImage(self._warped_moving_str)
+        self._warped_moving_sitk = sitkh.read_nifti_image_sitk(
+            self._warped_moving_str)
 
         # Convert to sitk affine transform
         self._registration_transform_sitk = self._convert_to_sitk_transform()
@@ -108,17 +112,13 @@ class FLIRT(WrapperRegistration):
     #
     def _convert_to_sitk_transform(self):
 
-        c3d = nipype.interfaces.c3.C3dAffineTool()
-        c3d.inputs.reference_file = self._fixed_str
-        c3d.inputs.source_file = self._moving_str
-        c3d.inputs.transform_file = self._registration_transform_str
-        c3d.inputs.fsl2ras = True
-        c3d.inputs.itk_transform = self._registration_transform_sitk_str
-
-        # Execute conversion
-        if self._verbose:
-            ph.print_execution(c3d.cmdline)
-        c3d.run()
+        flirt2sitk.convert_flirt_to_sitk_transform(
+            self._registration_transform_str,
+            self._fixed_str,
+            self._moving_str,
+            self._registration_transform_sitk_str,
+            verbose=self._verbose,
+        )
 
         # Read transform and convert to affine registration
         trafo_sitk = sitk.ReadTransform(self._registration_transform_sitk_str)
