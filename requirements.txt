@@ -1,1 +1,1 @@
--e git+https://github.com/gift-surg/PySiTK.git@v0.2#egg=PySiTK-0.2
+-e git+https://github.com/gift-surg/PySiTK.git@v0.2.1#egg=PySiTK-0.2.1

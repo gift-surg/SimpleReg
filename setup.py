@@ -15,7 +15,7 @@ long_description = "This package contains the wrapping of FLIRT and NiftyReg "
 "to Python."
 
 setup(name='SimpleReg',
-      version='0.2',
+      version='0.2.1',
       description='Wrapped registration tools including FLIRT and NiftyReg',
       long_description=long_description,
       url='https://github.com/gift-surg/SimpleReg',

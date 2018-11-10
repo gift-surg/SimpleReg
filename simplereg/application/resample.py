@@ -56,7 +56,8 @@ def main():
             ", ".join(ALLOWED_INTERPOLATORS)),
         type=str,
         required=0,
-        default="BSpline",
+        default="Linear",
+        # default="BSpline",  # might cause problems for some images
     )
     parser.add_argument(
         "-p", "--padding",
