@@ -57,6 +57,7 @@ def main():
         type=str,
         required=0,
         default="Linear",
+        # default="BSpline",  # might cause problems for some images
     )
     parser.add_argument(
         "-p", "--padding",
