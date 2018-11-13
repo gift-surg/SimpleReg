@@ -337,6 +337,7 @@ class UtilitiesTest(unittest.TestCase):
                                            len(shearings) *
                                            len(translations))**3
               )
+        print("Might take a while ...")
         for rx, ry, rz in itertools.product(rotations, rotations, rotations):
             for tx, ty, tz in itertools.product(translations, translations, translations):
                 for sx, sy, sz in itertools.product(scalings, scalings, scalings):

@@ -233,8 +233,8 @@ def compose_affine_transforms(transform_outer, transform_inner):
 
 
 ##
-# Approximate an affine transform by a rigid one. Be aware that currently
-# only rotation + (some positive) scaling transformations have been tested! See
+# Approximate an affine transform by a rigid one. Be aware that currently only
+# rotation + positive scaling transformations have been tested! See
 # utilities_test.py (test_extract_rigid_from_affine_sitk)
 #
 # -# https://math.stackexchange.com/questions/237369/given-this-transformation-matrix-how-do-i-decompose-it-into-translation-rotati
@@ -242,7 +242,8 @@ def compose_affine_transforms(transform_outer, transform_inner):
 #  -# https://gamedev.stackexchange.com/questions/50963/how-to-extract-euler-angles-from-transformation-matrix
 #  -# https://d3cw3dd2w32x2b.cloudfront.net/wp-content/uploads/2012/07/euler-angles1.pdf
 #
-# \todo Current implementation fails once shearing is involved!
+# \todo Current implementation fails once shearing and negative scalings are
+# involved!
 # \date       2018-11-11 18:42:19+0000
 #
 # \param      affine_sitk  Affine transformation as sitk.AffineTransform object
@@ -316,6 +317,6 @@ def extract_rigid_from_affine_sitk(affine_sitk, compute_ZYX=0):
         # In principle, could be used for 3D too. However, unit tests
         # have shown the Day2012 computations to be more reliable
         euler_sitk.SetMatrix(U.flatten())
-        ph.print_warning("2D Conversion has not been tested!")
+        ph.print_warning("2D conversion has not been tested!")
 
     return euler_sitk
