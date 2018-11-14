@@ -235,7 +235,7 @@ def compose_affine_transforms(transform_outer, transform_inner):
 ##
 # Approximate an affine transform by a rigid one. Be aware that currently only
 # rotation + positive scaling transformations have been tested! See
-# utilities_test.py (test_extract_rigid_from_affine_sitk)
+# utilities_test.py (test_extract_rigid_from_affine)
 #
 # -# https://math.stackexchange.com/questions/237369/given-this-transformation-matrix-how-do-i-decompose-it-into-translation-rotati
 # -# https://math.stackexchange.com/questions/58277/decompose-rigid-motion-affine-transform-into-parts
@@ -251,7 +251,7 @@ def compose_affine_transforms(transform_outer, transform_inner):
 #
 # \return     Approximated rigid transformation as sitk.EulerTransform object
 #
-def extract_rigid_from_affine_sitk(affine_sitk, compute_ZYX=0):
+def extract_rigid_from_affine(affine_sitk, compute_ZYX=0):
 
     ##
     # Implementation along the lines of Day2012
@@ -320,3 +320,52 @@ def extract_rigid_from_affine_sitk(affine_sitk, compute_ZYX=0):
         ph.print_warning("2D conversion has not been tested!")
 
     return euler_sitk
+
+
+##
+# Gets the mean displacement between images in millimetre.
+# \date       2018-11-14 15:54:10+0000
+#
+# \param      image_sitk      The image sitk
+# \param      image_ref_sitk  The image reference sitk
+#
+# \return     The mean displacement between images.
+#
+def get_mean_displacement_between_images(image_sitk, image_ref_sitk):
+    if image_sitk.GetSize() != image_ref_sitk.GetSize():
+        raise ValueError("Provided images must be of identical shape")
+
+    shape = image_sitk.GetSize()
+    dim = image_sitk.GetDimension()
+
+    # Define points per image in voxel space
+    x_interval = np.arange(shape[0])
+    y_interval = np.arange(shape[1])
+    if dim == 2:
+        X, Y = np.meshgrid(
+            x_interval, y_interval, indexing='ij')
+        points = np.array([X.flatten(), Y.flatten()])
+    else:
+        z_interval = np.arange(shape[2])
+        X, Y, Z = np.meshgrid(
+            x_interval, y_interval, z_interval, indexing='ij')
+        points = np.array([X.flatten(), Y.flatten(), Z.flatten()])
+
+    # Get transform to map voxels to physical space for image and reference
+    affine_sitk = sitkh.get_sitk_affine_transform_from_sitk_image(
+        image_sitk)
+    m = np.array(affine_sitk.GetMatrix()).reshape(dim, dim)
+    t = np.array(affine_sitk.GetTranslation()).reshape(dim, 1)
+
+    affine_ref_sitk = sitkh.get_sitk_affine_transform_from_sitk_image(
+        image_ref_sitk)
+    m_ref = np.array(affine_ref_sitk.GetMatrix()).reshape(dim, dim)
+    t_ref = np.array(affine_ref_sitk.GetTranslation()).reshape(dim, 1)
+
+    # Compute displacements, dim x (Nx_Ny*Nz) array
+    displacements = (m_ref - m).dot(points) + t_ref - t
+
+    mean_displacement = np.mean(
+        np.sqrt(np.sum(np.square(displacements), axis=0)))
+
+    return mean_displacement

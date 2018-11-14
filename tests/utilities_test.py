@@ -270,7 +270,7 @@ class UtilitiesTest(unittest.TestCase):
     #         0, places=self.precision
     #     )
 
-    def test_extract_rigid_from_affine_sitk(self):
+    def test_extract_rigid_from_affine(self):
 
         ##
         # Build the rotation matrix as NiftyReg does it and account for the
@@ -366,7 +366,7 @@ class UtilitiesTest(unittest.TestCase):
 
                         # Approximate affine by rigid transform
                         approx_euler_sitk = \
-                            utils.extract_rigid_from_affine_sitk(affine_sitk)
+                            utils.extract_rigid_from_affine(affine_sitk)
                         m_approx_euler = np.array(
                             approx_euler_sitk.GetMatrix()).reshape(3, 3)
 
@@ -387,3 +387,42 @@ class UtilitiesTest(unittest.TestCase):
                             print("rotations: %s" % np.array([rx, ry, rz]))
 
                         self.assertAlmostEqual(error, 0, places=5)
+
+    def test_get_mean_displacement_between_images(self):
+
+        shapes = {
+            2: (100, 200),
+            3: (100, 200, 50),
+        }
+        parameters = {
+            2: (-1.7, -10.23, 12),
+            3: (0.3, -1.3, 2.1, -10.23, 12, 4),
+        }
+
+        for dim in [2, 3]:
+            print("Dimension: %d" % dim)
+            transform_sitk = getattr(sitk, "Euler%dDTransform" % dim)()
+            transform_sitk.SetParameters(parameters[dim])
+
+            image_sitk = sitk.Image(shapes[dim], sitk.sitkFloat32)
+            image_ref_sitk = sitkh.get_transformed_sitk_image(
+                image_sitk, transform_sitk)
+
+            # -------------------Compute mean displacements-------------------
+            t0 = ph.start_timing()
+            mean_disp = utils.get_mean_displacement_between_images(
+                image_sitk, image_ref_sitk)
+            print("Time method: %s" % ph.stop_timing(t0))
+
+            # -----------------------Compute ref result-----------------------
+            t0 = ph.start_timing()
+            disp = np.zeros(shapes[dim] + (dim,))
+            for index in np.ndindex(shapes[dim]):
+                point = image_sitk.TransformIndexToPhysicalPoint(index)
+                point_ref = image_ref_sitk.TransformIndexToPhysicalPoint(index)
+                disp[index] = point - np.array(point_ref)
+            mean_disp_ref = np.mean(np.sqrt(np.sum(np.square(disp), axis=-1)))
+            print("Time reference: %s" % ph.stop_timing(t0))
+
+            self.assertAlmostEqual(np.abs(mean_disp - mean_disp_ref), 0,
+                                   places=self.precision)
