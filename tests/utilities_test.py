@@ -256,9 +256,9 @@ class UtilitiesTest(unittest.TestCase):
 
     #     transform = utils.compose_affine_transforms(
     #         transform_outer, transform_inner)
-    #     disp_ref = sitk.TransformToDisplacementField(transform)
+    #     norm_disp_ref = sitk.TransformToDisplacementField(transform)
     #     transform_disp_ref = sitk.DisplacementFieldTransform(
-    #         sitk.Image(disp_ref))
+    #         sitk.Image(norm_disp_ref))
 
     #     transform_disp = utils.compose_displacement_field_transforms(
     #         transform_disp_outer, transform_disp_inner)
@@ -388,41 +388,62 @@ class UtilitiesTest(unittest.TestCase):
 
                         self.assertAlmostEqual(error, 0, places=5)
 
-    def test_get_mean_displacement_between_images(self):
+    def test_get_displacement_norm_between_images(self):
 
         shapes = {
             2: (100, 200),
             3: (100, 200, 50),
         }
+        origin = {
+            2: (-100, 10),
+            3: (-100, 10, 33.3),
+        }
+        direction = {
+            2: (0, -1, 1, 0),
+            3: (0, 1, 0, 1, 0, 0, 0, 0, -1),
+        }
+        spacing = {
+            2: (1.1, 2.5),
+            3: (1.1, 2.5, 5),
+        }
+
         parameters = {
             2: (-1.7, -10.23, 12),
             3: (0.3, -1.3, 2.1, -10.23, 12, 4),
+        }
+        center = {
+            2: (-10, 15),
+            3: (-10, 15, 17.3),
         }
 
         for dim in [2, 3]:
             print("Dimension: %d" % dim)
             transform_sitk = getattr(sitk, "Euler%dDTransform" % dim)()
             transform_sitk.SetParameters(parameters[dim])
+            transform_sitk.SetCenter(center[dim])
 
             image_sitk = sitk.Image(shapes[dim], sitk.sitkFloat32)
-            image_ref_sitk = sitkh.get_transformed_sitk_image(
-                image_sitk, transform_sitk)
+            image_sitk.SetOrigin(origin[dim])
+            image_sitk.SetDirection(direction[dim])
+            image_sitk.SetSpacing(spacing[dim])
 
             # -------------------Compute mean displacements-------------------
             t0 = ph.start_timing()
-            mean_disp = utils.get_mean_displacement_between_images(
-                image_sitk, image_ref_sitk)
+            norm_disp = utils.get_voxel_displacements(
+                image_sitk, transform_sitk)
             print("Time method: %s" % ph.stop_timing(t0))
 
             # -----------------------Compute ref result-----------------------
+            disp_shape = sitk.GetArrayFromImage(image_sitk).shape
             t0 = ph.start_timing()
-            disp = np.zeros(shapes[dim] + (dim,))
+            disp = np.zeros(disp_shape + (dim,))
             for index in np.ndindex(shapes[dim]):
                 point = image_sitk.TransformIndexToPhysicalPoint(index)
-                point_ref = image_ref_sitk.TransformIndexToPhysicalPoint(index)
-                disp[index] = point - np.array(point_ref)
-            mean_disp_ref = np.mean(np.sqrt(np.sum(np.square(disp), axis=-1)))
+                point_ref = transform_sitk.TransformPoint(point)
+                disp[index[::-1]] = point - np.array(point_ref)
+            norm_disp_ref = np.sqrt(np.sum(np.square(disp), axis=-1))
             print("Time reference: %s" % ph.stop_timing(t0))
 
-            self.assertAlmostEqual(np.abs(mean_disp - mean_disp_ref), 0,
-                                   places=self.precision)
+            self.assertAlmostEqual(
+                np.linalg.norm(norm_disp - norm_disp_ref), 0,
+                places=self.precision)

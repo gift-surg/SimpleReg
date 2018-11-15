@@ -323,49 +323,27 @@ def extract_rigid_from_affine(affine_sitk, compute_ZYX=0):
 
 
 ##
-# Gets the mean displacement between images in millimetre.
+# Gets the voxel displacements in millimetre.
 # \date       2018-11-14 15:54:10+0000
 #
-# \param      image_sitk      The image sitk
-# \param      image_ref_sitk  The image reference sitk
+# \param      image_sitk      image as sitk.Image, (Nx, Ny, Nz) data array
+# \param      transform_sitk  sitk.Transform object
 #
-# \return     The mean displacement between images.
+# \return     The voxel displacement in millimetres as np.array
+#             with shape [Nz x] Ny x Nx to meet ITK<->Numpy convention
 #
-def get_mean_displacement_between_images(image_sitk, image_ref_sitk):
-    if image_sitk.GetSize() != image_ref_sitk.GetSize():
-        raise ValueError("Provided images must be of identical shape")
+def get_voxel_displacements(image_sitk, transform_sitk):
 
-    shape = image_sitk.GetSize()
-    dim = image_sitk.GetDimension()
+    if not isinstance(transform_sitk, sitk.Transform):
+        raise ValueError("Provided transform must be of type sitk.Transform")
 
-    # Define points per image in voxel space
-    x_interval = np.arange(shape[0])
-    y_interval = np.arange(shape[1])
-    if dim == 2:
-        X, Y = np.meshgrid(
-            x_interval, y_interval, indexing='ij')
-        points = np.array([X.flatten(), Y.flatten()])
-    else:
-        z_interval = np.arange(shape[2])
-        X, Y, Z = np.meshgrid(
-            x_interval, y_interval, z_interval, indexing='ij')
-        points = np.array([X.flatten(), Y.flatten(), Z.flatten()])
+    # Convert sitk.Transform to displacement field
+    disp_field_filter = sitk.TransformToDisplacementFieldFilter()
+    disp_field_filter.SetReferenceImage(image_sitk)
+    disp_field = disp_field_filter.Execute(transform_sitk)
 
-    # Get transform to map voxels to physical space for image and reference
-    affine_sitk = sitkh.get_sitk_affine_transform_from_sitk_image(
-        image_sitk)
-    m = np.array(affine_sitk.GetMatrix()).reshape(dim, dim)
-    t = np.array(affine_sitk.GetTranslation()).reshape(dim, 1)
+    # Get displacement field array and compute voxel displacements
+    disp = sitk.GetArrayFromImage(disp_field)
+    voxel_disp = np.sqrt(np.sum(np.square(disp), axis=-1))
 
-    affine_ref_sitk = sitkh.get_sitk_affine_transform_from_sitk_image(
-        image_ref_sitk)
-    m_ref = np.array(affine_ref_sitk.GetMatrix()).reshape(dim, dim)
-    t_ref = np.array(affine_ref_sitk.GetTranslation()).reshape(dim, 1)
-
-    # Compute displacements, dim x (Nx_Ny*Nz) array
-    displacements = (m_ref - m).dot(points) + t_ref - t
-
-    mean_displacement = np.mean(
-        np.sqrt(np.sum(np.square(displacements), axis=0)))
-
-    return mean_displacement
+    return voxel_disp
