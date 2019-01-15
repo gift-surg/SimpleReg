@@ -1,6 +1,6 @@
 # SimpleReg 
 
-SimpleReg is a Python-based open-source toolkit that provides the interface to various registration tools including
+SimpleReg is a Python-based open-source toolkit that provides tools helpful for (medical) image registration and processing. Interfaces to the following registration frameworks are available:
 
 * [SimpleITK][simpleitk]
 * [NiftyReg][niftyreg]
