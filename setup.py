@@ -22,7 +22,7 @@ def install_requires(fname="requirements.txt"):
     return content
 
 setup(name='SimpleReg',
-      version='0.3rc1',
+      version='0.4rc1',
       description="SimpleReg is a research-focused toolkit that provides "
       "tools helpful for (medical) image registration and processing.",
       long_description=long_description,
