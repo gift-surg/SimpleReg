@@ -9,29 +9,30 @@
 # \date       July 2017
 #
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
-long_description = "This package contains the wrapping of FLIRT and NiftyReg "
-"to Python."
+with open("README.md", "r") as fh:
+    long_description = fh.read()
+
+
+def install_requires(fname="requirements.txt"):
+    with open(fname) as f:
+        content = f.readlines()
+    content = [x.strip() for x in content]
+    return content
 
 setup(name='SimpleReg',
-      version='0.2.1',
-      description='Wrapped registration tools including FLIRT and NiftyReg',
+      version='0.3',
+      description="SimpleReg is a research-focused toolkit that provides "
+      "tools helpful for (medical) image registration and processing.",
       long_description=long_description,
+      long_description_content_type="text/markdown",
       url='https://github.com/gift-surg/SimpleReg',
       author='Michael Ebner',
       author_email='michael.ebner.14@ucl.ac.uk',
       license='BSD-3-Clause',
-      packages=['simplereg'],
-      install_requires=[
-          "pysitk>=0.2",
-          "numpy>=1.13.1",
-          "SimpleITK>=1.0.1",
-          "nipype>=0.13.1",
-          "six>=1.10.0",
-          "scikit_learn>=0.19.1",
-          "scikit_image>=0.14.0",
-      ],
+      packages=find_packages(),
+      install_requires=install_requires(),
       zip_safe=False,
       keywords='development registration',
       classifiers=[
@@ -46,7 +47,7 @@ setup(name='SimpleReg',
 
           'Programming Language :: Python',
           'Programming Language :: Python :: 2',
-          'Programming Language :: Python :: 2.7',
+          'Programming Language :: Python :: 3',
       ],
       entry_points={
           'console_scripts': [

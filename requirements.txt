@@ -1,1 +1,9 @@
--e git+https://github.com/gift-surg/PySiTK.git@v0.2.1#egg=PySiTK-0.2.1
+pysitk>=0.2.8
+numpy>=1.14.2,!=1.16.0
+nibabel>=2.2.1
+six>=1.11.0
+scikit_image>=0.14.1
+scikit_learn>=0.19.1
+nipype>=1.0.3
+scipy>=1.0.1
+SimpleITK>=1.2.0

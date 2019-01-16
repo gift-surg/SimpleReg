@@ -7,6 +7,7 @@
 
 import os
 import numpy as np
+import scipy.linalg
 import nibabel as nib
 import SimpleITK as sitk
 import scipy.ndimage.morphology
@@ -229,3 +230,120 @@ def compose_affine_transforms(transform_outer, transform_inner):
     transform.SetCenter(c_composite)
 
     return transform
+
+
+##
+# Approximate an affine transform by a rigid one. Be aware that currently only
+# rotation + positive scaling transformations have been tested! See
+# utilities_test.py (test_extract_rigid_from_affine)
+#
+# -# https://math.stackexchange.com/questions/237369/given-this-transformation-matrix-how-do-i-decompose-it-into-translation-rotati
+# -# https://math.stackexchange.com/questions/58277/decompose-rigid-motion-affine-transform-into-parts
+#  -# https://gamedev.stackexchange.com/questions/50963/how-to-extract-euler-angles-from-transformation-matrix
+#  -# https://d3cw3dd2w32x2b.cloudfront.net/wp-content/uploads/2012/07/euler-angles1.pdf
+#
+# \todo Current implementation fails once shearing and negative scalings are
+# involved!
+# \date       2018-11-11 18:42:19+0000
+#
+# \param      affine_sitk  Affine transformation as sitk.AffineTransform object
+# \param      compute_ZYX  Representing m_ComputeZYX in ITK
+#
+# \return     Approximated rigid transformation as sitk.EulerTransform object
+#
+def extract_rigid_from_affine(affine_sitk, compute_ZYX=0):
+
+    ##
+    # Implementation along the lines of Day2012
+    # https://d3cw3dd2w32x2b.cloudfront.net/wp-content/uploads/2012/07/euler-angles1.pdf
+    def _set_angles_zxy(euler_sitk, R):
+        # Assume R = R_z(gamma) R_x(alpha) R_y(beta) [default in ITK]
+        alpha = np.arctan2(R[2, 1], np.sqrt(R[0, 1]**2 + R[1, 1]**2))
+        beta = np.arctan2(-R[2, 0], R[2, 2])
+        s2 = np.sin(beta)
+        c2 = np.cos(beta)
+        gamma = np.arctan2(c2 * R[1, 0] + s2 * R[1, 2],
+                           c2 * R[0, 0] + s2 * R[0, 2])
+        euler_sitk.SetRotation(alpha, beta, gamma)
+
+    ##
+    # Implementation along the lines of Day2012
+    # https://d3cw3dd2w32x2b.cloudfront.net/wp-content/uploads/2012/07/euler-angles1.pdf
+    def _set_angles_zyx(euler_sitk, R):
+        # Assume R = R_z(gamma) R_y(beta) R_x(alpha)
+        alpha = np.arctan2(R[2, 1], R[2, 2])
+        beta = np.arctan2(-R[2, 0], np.sqrt(R[0, 0]**2 + R[1, 0]**2))
+        s1 = np.sin(alpha)
+        c1 = np.cos(alpha)
+        gamma = np.arctan2(s1 * R[0, 2] - c1 * R[0, 1],
+                           c1 * R[1, 1] - s1 * R[1, 2])
+        euler_sitk.SetComputeZYX(True)
+        euler_sitk.SetRotation(alpha, beta, gamma)
+
+    _set_angles = {
+        1: _set_angles_zyx,
+        0: _set_angles_zxy,
+    }
+
+    dim = affine_sitk.GetDimension()
+    m_affine_nda = np.array(affine_sitk.GetMatrix()).reshape(dim, dim)
+
+    euler_sitk = getattr(sitk, "Euler%dDTransform" % dim)()
+    euler_sitk.SetTranslation(affine_sitk.GetTranslation())
+    euler_sitk.SetCenter(affine_sitk.GetCenter())
+
+    # Scaling in x, y [, z]
+    # scaling = np.array([
+    #     np.linalg.norm(m_affine_nda[:, i]) for i in range(dim)])
+
+    # Divide by scaling in x, y [, z]; Thus, columns have length 1 but are not
+    # necessarily orthogonal
+    # TODO: Seems that scaling does not provide correct estimate
+    # (utilities_test.py)
+    # m_no_scale_nda = m_affine_nda / scaling
+
+    # According to unit tests, it works better without scaling correction (!?)
+    # m_no_scale_nda = m_affine_nda
+
+    # Polar factorization to get "closest" orthogonal matrix.
+    # However, might not be a rotation!
+    U, P = scipy.linalg.polar(m_affine_nda)
+
+    if dim == 3:
+        # Implementation along the lines of Day2012
+        _set_angles[compute_ZYX](euler_sitk, U)
+
+    else:
+        # In principle, could be used for 3D too. However, unit tests
+        # have shown the Day2012 computations to be more reliable
+        euler_sitk.SetMatrix(U.flatten())
+        ph.print_warning("2D conversion has not been tested!")
+
+    return euler_sitk
+
+
+##
+# Gets the voxel displacements in millimetre.
+# \date       2018-11-14 15:54:10+0000
+#
+# \param      image_sitk      image as sitk.Image, (Nx, Ny, Nz) data array
+# \param      transform_sitk  sitk.Transform object
+#
+# \return     The voxel displacement in millimetres as np.array
+#             with shape [Nz x] Ny x Nx to meet ITK<->Numpy convention
+#
+def get_voxel_displacements(image_sitk, transform_sitk):
+
+    if not isinstance(transform_sitk, sitk.Transform):
+        raise ValueError("Provided transform must be of type sitk.Transform")
+
+    # Convert sitk.Transform to displacement field
+    disp_field_filter = sitk.TransformToDisplacementFieldFilter()
+    disp_field_filter.SetReferenceImage(image_sitk)
+    disp_field = disp_field_filter.Execute(transform_sitk)
+
+    # Get displacement field array and compute voxel displacements
+    disp = sitk.GetArrayFromImage(disp_field)
+    voxel_disp = np.sqrt(np.sum(np.square(disp), axis=-1))
+
+    return voxel_disp
