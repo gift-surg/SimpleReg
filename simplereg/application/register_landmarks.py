@@ -11,6 +11,8 @@ from mpl_toolkits.mplot3d import Axes3D
 
 import pysitk.python_helper as ph
 
+import simplereg.data_reader as dr
+
 
 def visualize(iteration, error, X, Y, ax):
     plt.cla()
@@ -71,8 +73,8 @@ def main():
 
     args = parser.parse_args()
 
-    landmarks_fixed_nda = np.loadtxt(args.fixed)
-    landmarks_moving_nda = np.loadtxt(args.moving)
+    landmarks_fixed_nda = dr.DataReader.read_landmarks(args.fixed)
+    landmarks_moving_nda = dr.DataReader.read_landmarks(args.moving)
 
     if args.verbose:
         fig = plt.figure()

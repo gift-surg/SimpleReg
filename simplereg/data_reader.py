@@ -53,6 +53,15 @@ class DataReader(object):
 
         return image
 
+
+    ##
+    # Reads landmarks and return as numpy data array.
+    # \date       2019-02-18 14:50:17+0000
+    #
+    # \param      path_to_file  The path to file
+    #
+    # \return     Numpy data array of shape (N x dim), dim either 2 or 3
+    #
     @staticmethod
     def read_landmarks(path_to_file):
 
@@ -64,7 +73,14 @@ class DataReader(object):
             raise IOError("Landmark file extension must be of type %s " %
                           ", or ".join(ALLOWED_LANDMARKS))
 
-        return np.loadtxt(path_to_file)
+        nda = np.loadtxt(path_to_file)
+
+        if nda.shape[1] not in [2, 3]:
+            raise IOError(
+                "Landmark array file must be of shape N x dim, "
+                "with dim either 2 or 3.")
+
+        return nda
 
     ##
     # Reads a transform.
