@@ -53,7 +53,6 @@ class DataReader(object):
 
         return image
 
-
     ##
     # Reads landmarks and return as numpy data array.
     # \date       2019-02-18 14:50:17+0000
