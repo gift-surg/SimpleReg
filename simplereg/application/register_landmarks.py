@@ -108,9 +108,12 @@ def main():
             eigvec_moving_o = np.array(eigvec_moving)
             eigvec_moving_o[:, 0] *= orientation[0]
             eigvec_moving_o[:, 1] *= orientation[1]
+
+            # get right-handed coordinate system
             cross = np.cross(eigvec_moving_o[:, 0], eigvec_moving_o[:, 1])
             eigvec_moving_o[:, 2] = cross
 
+            # transformation to align fixed with moving eigenbasis
             R = eigvec_moving_o.dot(eigvec_fixed.transpose())
             t = mean_moving - R.dot(mean_fixed)
 
