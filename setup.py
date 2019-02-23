@@ -21,6 +21,7 @@ base_dir = os.path.dirname(__file__)
 with open(os.path.join(base_dir, "simplereg", "__about__.py")) as fp:
     exec(fp.read(), about)
 
+
 def install_requires(fname="requirements.txt"):
     with open(fname) as f:
         content = f.readlines()
