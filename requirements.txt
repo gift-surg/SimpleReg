@@ -1,5 +1,5 @@
-pysitk>=0.2.8
-nsol>=0.1.8
+pysitk>=0.2.13
+nsol>=0.1.10
 numpy>=1.14.2,!=1.16.0
 nibabel>=2.2.1
 six>=1.11.0
