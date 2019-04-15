@@ -17,7 +17,7 @@ import pysitk.simple_itk_helper as sitkh
 
 from simplereg.definitions import ALLOWED_IMAGES
 from simplereg.definitions import ALLOWED_LANDMARKS
-from simplereg.definitions import ALLOWED_TRANSFORMS
+from simplereg.definitions import ALLOWED_TRANSFORMS, ALLOWED_TRANSFORMS_NREG
 from simplereg.definitions import ALLOWED_TRANSFORMS_DISPLACEMENTS
 
 
@@ -138,13 +138,13 @@ class DataReader(object):
                           path_to_file)
 
         extension = ph.strip_filename_extension(path_to_file)[1]
-        if extension not in ALLOWED_TRANSFORMS and \
+        if extension not in ALLOWED_TRANSFORMS_NREG and \
                 extension not in ALLOWED_TRANSFORMS_DISPLACEMENTS:
             raise IOError("NiftyReg transform file extension must be of type "
                           "%s (reg_aladin) or %s (reg_f3d displacement)" % (
-                              ", ".join(ALLOWED_TRANSFORMS),
+                              ", ".join(ALLOWED_TRANSFORMS_NREG),
                               ", ".join(ALLOWED_TRANSFORMS_DISPLACEMENTS)))
-        if extension in ALLOWED_TRANSFORMS:
+        if extension in ALLOWED_TRANSFORMS_NREG:
             transform_nreg = np.loadtxt(path_to_file)
         else:
             transform_nreg = nib.load(path_to_file)
@@ -169,9 +169,9 @@ class DataReader(object):
                           path_to_file)
 
         extension = ph.strip_filename_extension(path_to_file)[1]
-        if extension not in ALLOWED_TRANSFORMS:
+        if extension not in ALLOWED_TRANSFORMS_NREG:
             raise IOError(
                 "FLIRT transform file extension must be of type %s" %
-                ", or ".join(ALLOWED_TRANSFORMS))
+                ", or ".join(ALLOWED_TRANSFORMS_NREG))
 
         return np.loadtxt(path_to_file)

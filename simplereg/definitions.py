@@ -11,7 +11,8 @@ DIR_TEST = os.path.join(DIR_DATA, "tests")
 OMP = 8
 
 ALLOWED_IMAGES = ["nii.gz", "nii"]
-ALLOWED_TRANSFORMS = ["txt"]
+ALLOWED_TRANSFORMS = ["txt", "tfm"]
+ALLOWED_TRANSFORMS_NREG = ["txt"]
 ALLOWED_TRANSFORMS_DISPLACEMENTS = ["nii.gz", "nii"]
 ALLOWED_LANDMARKS = ["txt"]
 ALLOWED_INTERPOLATORS = [
