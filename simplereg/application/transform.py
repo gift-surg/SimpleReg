@@ -11,6 +11,7 @@ import SimpleITK as sitk
 import pysitk.python_helper as ph
 import pysitk.simple_itk_helper as sitkh
 
+import simplereg.resampler as res
 import simplereg.data_reader as dr
 import simplereg.data_writer as dw
 import simplereg.utilities as utils
@@ -142,6 +143,15 @@ def main():
         "If a binary mask is provided centroids are computed for each "
         "connected region.",
         metavar=("LABEL", "OUTPUT_LANDMARKS"),
+        type=str,
+        nargs=2,
+        default=None,
+    )
+    parser.add_argument(
+        "-label2points", "--label-to-points",
+        help="Export point coordinates of labelled voxels of binary mask "
+        "to text file. ",
+        metavar=("LABEL", "OUTPUT_POINTS"),
         type=str,
         nargs=2,
         default=None,
@@ -284,6 +294,21 @@ def main():
         landmarks_nda = landmark_estimator.get_landmarks()
         dw.DataWriter.write_landmarks(
             landmarks_nda, args.label_to_landmark[1], args.verbose)
+
+    if args.label_to_points is not None:
+        label_sitk = dr.DataReader.read_image(args.label_to_points[0])
+        label_mesh_nda = sitk.GetArrayFromImage(label_sitk)
+
+        # [z, y, x] x n_landmarks to [x, y, z] x n_landmarks
+        indices = np.array(np.where(label_mesh_nda == 1))[::-1, :]
+        n_landmarks = len(indices[0])
+        for i in range(n_landmarks):
+            indices[:, i] = label_sitk.TransformIndexToPhysicalPoint(
+                [int(j) for j in indices[:, i]])
+
+        # write as n_landmarks x n_dim
+        dw.DataWriter.write_landmarks(
+            indices.transpose(), args.label_to_points[1])
 
     if args.landmark_to_label:
         landmarks_nda = dr.DataReader.read_landmarks(args.landmark_to_label[0])

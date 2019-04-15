@@ -1,6 +1,6 @@
 # -----------------------------------Set Up------------------------------------
 variables:
-    PY_VERSION: 2
+    PY_VERSION: 3
     PRIVATE: 0
     TMPDIR: ./tmp
     VENV: pysitk-test-py${PY_VERSION}

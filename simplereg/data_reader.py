@@ -17,7 +17,7 @@ import pysitk.simple_itk_helper as sitkh
 
 from simplereg.definitions import ALLOWED_IMAGES
 from simplereg.definitions import ALLOWED_LANDMARKS
-from simplereg.definitions import ALLOWED_TRANSFORMS
+from simplereg.definitions import ALLOWED_TRANSFORMS, ALLOWED_TRANSFORMS_NREG
 from simplereg.definitions import ALLOWED_TRANSFORMS_DISPLACEMENTS
 
 
@@ -53,6 +53,14 @@ class DataReader(object):
 
         return image
 
+    ##
+    # Reads landmarks and return as numpy data array.
+    # \date       2019-02-18 14:50:17+0000
+    #
+    # \param      path_to_file  The path to file
+    #
+    # \return     Numpy data array of shape (N x dim), dim either 2 or 3
+    #
     @staticmethod
     def read_landmarks(path_to_file):
 
@@ -64,7 +72,14 @@ class DataReader(object):
             raise IOError("Landmark file extension must be of type %s " %
                           ", or ".join(ALLOWED_LANDMARKS))
 
-        return np.loadtxt(path_to_file)
+        nda = np.loadtxt(path_to_file)
+
+        if nda.shape[1] not in [2, 3]:
+            raise IOError(
+                "Landmark array file must be of shape N x dim, "
+                "with dim either 2 or 3.")
+
+        return nda
 
     ##
     # Reads a transform.
@@ -123,13 +138,13 @@ class DataReader(object):
                           path_to_file)
 
         extension = ph.strip_filename_extension(path_to_file)[1]
-        if extension not in ALLOWED_TRANSFORMS and \
+        if extension not in ALLOWED_TRANSFORMS_NREG and \
                 extension not in ALLOWED_TRANSFORMS_DISPLACEMENTS:
             raise IOError("NiftyReg transform file extension must be of type "
                           "%s (reg_aladin) or %s (reg_f3d displacement)" % (
-                              ", ".join(ALLOWED_TRANSFORMS),
+                              ", ".join(ALLOWED_TRANSFORMS_NREG),
                               ", ".join(ALLOWED_TRANSFORMS_DISPLACEMENTS)))
-        if extension in ALLOWED_TRANSFORMS:
+        if extension in ALLOWED_TRANSFORMS_NREG:
             transform_nreg = np.loadtxt(path_to_file)
         else:
             transform_nreg = nib.load(path_to_file)
@@ -154,9 +169,9 @@ class DataReader(object):
                           path_to_file)
 
         extension = ph.strip_filename_extension(path_to_file)[1]
-        if extension not in ALLOWED_TRANSFORMS:
+        if extension not in ALLOWED_TRANSFORMS_NREG:
             raise IOError(
                 "FLIRT transform file extension must be of type %s" %
-                ", or ".join(ALLOWED_TRANSFORMS))
+                ", or ".join(ALLOWED_TRANSFORMS_NREG))
 
         return np.loadtxt(path_to_file)
