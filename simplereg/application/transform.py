@@ -129,6 +129,29 @@ def main():
         default=None,
     )
     parser.add_argument(
+        "-mc2sc", "--multicomp-to-singlecomp",
+        help="Split a multi-component image (4D) into separate "
+        "single-component (3D) images",
+        metavar=("MC_IMAGE", "OUTPUT_DIRECTORY"),
+        type=str,
+        nargs=2,
+        default=None,
+    )
+    parser.add_argument(
+        "-sc2mc", "--singlecomp-to-multicomp",
+        help="Combine multiple single-component (3D) images "
+        "(with identical image header!) "
+        "into a single multi-component (4D) image.",
+
+        # Not right. But no idea how to get the metavar descrip set correctly
+        # metavar=("SC_IMAGE_1", "...", "SC_IMAGE_N", "OUTPUT_MC_IMAGE"),
+        metavar='SC_IMAGE_1 ... SC_IMAGE_N OUTPUT_MC_IMAGE',
+
+        type=str,
+        nargs="+",
+        default=None,
+    )
+    parser.add_argument(
         "-split", "--split-labels",
         help="Split multi-label mask into 4D (or 5D) image where each "
         "time point corresponds to an independent mask label",
@@ -278,6 +301,29 @@ def main():
         landmarks_nda[:, 0:2] *= -1
         dw.DataWriter.write_landmarks(
             landmarks_nda, args.swap_sitk_nii[1], args.verbose)
+
+    if args.multicomp_to_singlecomp:
+        vector_image_sitk = sitkh.read_sitk_vector_image(
+            args.multicomp_to_singlecomp[0])
+        fname = ph.strip_filename_extension(
+            os.path.basename(args.multicomp_to_singlecomp[0]))[0]
+        for i in range(vector_image_sitk.GetNumberOfComponentsPerPixel()):
+            image_sitk = sitk.VectorIndexSelectionCast(vector_image_sitk, i)
+            path_to_output = os.path.join(
+                args.multicomp_to_singlecomp[1], "%s_%d.nii.gz" % (fname, i))
+            dw.DataWriter.write_image(image_sitk, path_to_output, args.verbose)
+
+    if args.singlecomp_to_multicomp:
+        images_sitk = [None] * (len(args.singlecomp_to_multicomp) - 1)
+        for i in range(len(images_sitk)):
+            images_sitk[i] = dr.DataReader.read_image(
+                args.singlecomp_to_multicomp[i])
+        vector_image_sitk = sitkh.get_sitk_vector_image_from_components(
+            images_sitk)
+        dw.DataWriter.write_vector_image(
+            vector_image_sitk,
+            args.singlecomp_to_multicomp[-1],
+            verbose=args.verbose)
 
     if args.split_labels is not None:
         dim = int(args.split_labels[1])
