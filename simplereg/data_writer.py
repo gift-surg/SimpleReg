@@ -39,6 +39,22 @@ class DataWriter(object):
                 image_itk=image_sitk,
                 path_to_file=path_to_file,
                 verbose=verbose)
+    
+    @staticmethod
+    def write_vector_image(vector_image_sitk, path_to_file, verbose=0):
+
+        extension = ph.strip_filename_extension(path_to_file)[1]
+        if extension not in ALLOWED_IMAGES:
+            raise IOError("Image file extension must be of type %s " %
+                          ", or ".join(ALLOWED_IMAGES))
+        if isinstance(vector_image_sitk, sitk.Image):
+            sitkh.write_sitk_vector_image(
+                vector_image_sitk,
+                path_to_file,
+                verbose=verbose,
+            )
+        else:
+            raise ValueError("Only implemented for SimpleITK images")
 
     @staticmethod
     def write_landmarks(landmarks_nda, path_to_file, verbose=0):
